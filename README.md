@@ -4,7 +4,7 @@ System Description: The COT SBO Event Management System is a web-based platform 
 
 Group Member:
 
-1.Rell Portillas
-2.Merwin Sellote
-3.Jessa Niña Cirunay Llaban
-4.Winston Hendrix Mansueto
+1.Rell Portillas,
+2.Merwin Sellote,
+3.Jessa Niña Cirunay Llaban,
+4.Winston Hendrix Mansueto.
