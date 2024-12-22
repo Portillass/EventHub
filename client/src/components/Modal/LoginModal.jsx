@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import '../../styles/Modal.css';
-import { FaTimes, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaTimes, FaEnvelope, FaLock, FaGoogle } from 'react-icons/fa';
 
 const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -15,10 +18,30 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add login logic here
-    console.log('Login data:', formData);
+    
+    if (!recaptchaToken) {
+      setError('Please complete the reCAPTCHA');
+      return;
+    }
+
+    try {
+      console.log('Login data:', {
+        ...formData,
+        recaptchaToken
+      });
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:2025/api/auth/google';
   };
 
   const handleSwitch = (e) => {
@@ -44,6 +67,8 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
         
         <h2>Welcome Back!</h2>
         <p className="modal-subtitle">Sign in to continue to EventHub</p>
+        
+        {error && <div className="error-message">{error}</div>}
         
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-group">
@@ -83,8 +108,28 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
             </a>
           </div>
           
+          <div className="recaptcha-container">
+            <ReCAPTCHA
+              sitekey="6Ld7HqMqAAAAAOOpDJ02_2nrAFr_2MSxT-GIeypE"
+              onChange={handleRecaptchaChange}
+              theme="dark"
+            />
+          </div>
+
           <button type="submit" className="submit-button">
             Sign In
+          </button>
+
+          <div className="divider">
+            <span>OR</span>
+          </div>
+
+          <button 
+            type="button" 
+            className="google-signin-button"
+            onClick={handleGoogleLogin}
+          >
+            <FaGoogle /> Sign in with Google
           </button>
         </form>
         
