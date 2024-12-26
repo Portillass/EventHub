@@ -1,0 +1,141 @@
+.pending-users {
+  padding: 2rem;
+}
+
+.pending-users h2 {
+  color: #FFD700;
+  margin-bottom: 2rem;
+  font-size: 1.8rem;
+}
+
+.no-pending {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.user-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.user-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.user-info {
+  margin-bottom: 1.5rem;
+}
+
+.user-info h3 {
+  color: #FFD700;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.user-info .email {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 1rem;
+}
+
+.user-info .details {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+}
+
+.registration-date {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.role-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.other-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+button {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.approve-student {
+  background: #4CAF50;
+  color: white;
+}
+
+.approve-officer {
+  background: #2196F3;
+  color: white;
+}
+
+.archive {
+  background: #FFC107;
+  color: #1a1a1a;
+}
+
+.delete {
+  background: #f44336;
+  color: white;
+}
+
+button:hover {
+  filter: brightness(110%);
+  transform: translateY(-1px);
+}
+
+.loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 2rem;
+}
+
+.error {
+  color: #f44336;
+  text-align: center;
+  padding: 2rem;
+  background: rgba(244, 67, 54, 0.1);
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .role-buttons,
+  .other-actions {
+    grid-template-columns: 1fr;
+  }
+}

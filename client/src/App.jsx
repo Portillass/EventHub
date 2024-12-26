@@ -1,42 +1,92 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import Loading from './components/Loading';
-import LandingPage from './components/LandingPage';
+import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import './App.css'
+import LandingPage from './components/LandingPage'
+import AdminDashboard from './components/dashboards/AdminDashboard'
+import OfficerDashboard from './components/dashboards/OfficerDashboard'
+import StudentDashboard from './components/dashboards/StudentDashboard'
+import PendingPage from './components/PendingPage'
+import Loading from './components/Loading'
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [key, setKey] = useState(0);
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userRole, setUserRole] = useState(null)
+  const [userStatus, setUserStatus] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Reset loading state on route change or refresh
-    setIsLoading(true);
-    
-    // Listen for page refresh
-    const handleBeforeUnload = () => {
-      setIsLoading(true);
-      setKey(prev => prev + 1);
-    };
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('http://localhost:2025/api/auth/current-user', {
+          credentials: 'include'
+        })
+        
+        const data = await response.json()
+        
+        if (data.isAuthenticated && data.user) {
+          setIsAuthenticated(true)
+          setUserRole(data.user.role)
+          setUserStatus(data.user.status)
+        } else {
+          setIsAuthenticated(false)
+          setUserRole(null)
+          setUserStatus(null)
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+        setIsAuthenticated(false)
+        setUserRole(null)
+        setUserStatus(null)
+      }
+      setIsLoading(false)
+    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+    checkAuth()
+  }, [])
 
-  const handleLoadingComplete = () => {
-    setIsLoading(false);
-  };
+  if (isLoading) {
+    return <Loading />
+  }
 
   return (
-    <Router>
-      {isLoading ? (
-        <Loading key={key} onLoadingComplete={handleLoadingComplete} />
-      ) : (
-        <Routes>
-          <Route path="/" element={<Navigate to="/landing" replace />} />
-          <Route path="/landing" element={<LandingPage />} />
-        </Routes>
-      )}
-    </Router>
-  );
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      
+      <Route 
+        path="/dashboard" 
+        element={
+          isAuthenticated ? (
+            userStatus === 'pending' ? (
+              <Navigate to="/pending" replace />
+            ) : (
+              userRole === 'admin' ? (
+                <AdminDashboard />
+              ) : userRole === 'officer' ? (
+                <OfficerDashboard />
+              ) : (
+                <StudentDashboard />
+              )
+            )
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } 
+      />
+
+      <Route 
+        path="/pending" 
+        element={
+          isAuthenticated && userStatus === 'pending' ? (
+            <PendingPage />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } 
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
 }
 
-export default App;
+export default App

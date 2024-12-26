@@ -1,64 +1,104 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const session = require('express-session');
 const passport = require('passport');
-
-dotenv.config();
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Add session middleware
+// Session configuration
 app.use(session({
-  secret: 'your-session-secret',
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Initialize passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Add auth routes
-app.use('/api/auth', require('./routes/auth'));
+// Routes
+app.use('/api/auth', authRoutes);
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/event_management';
-mongoose.connect(MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
+  .catch((error) => {
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
+  });
 
 // Basic route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the Event Management System API' });
 });
 
-// Start server with error handling
-const PORT = process.env.PORT || 2025;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
 
+// Function to find an available port
+const findAvailablePort = async (startPort) => {
+  const maxPort = 65535; // Maximum valid port number
+  let currentPort = parseInt(startPort);
+
+  while (currentPort <= maxPort) {
+    try {
+      await new Promise((resolve, reject) => {
+        const server = app.listen(currentPort)
+          .once('listening', () => {
+            server.close();
+            resolve(currentPort);
+          })
+          .once('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+              resolve(null);
+            } else {
+              reject(err);
+            }
+          });
+      });
+
+      return currentPort;
+    } catch (error) {
+      console.error(`Error trying port ${currentPort}:`, error);
+    }
+    currentPort++;
+  }
+
+  throw new Error('No available ports found');
+};
+
+// Start server
 const startServer = async () => {
   try {
-    const server = app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
+    const desiredPort = process.env.PORT || 2025;
+    const availablePort = await findAvailablePort(desiredPort);
+    
+    if (!availablePort) {
+      throw new Error('No available ports found');
+    }
 
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.log(`Port ${PORT} is busy, trying ${PORT + 1}`);
-        server.close();
-        app.listen(PORT + 1);
-      } else {
-        console.error('Server error:', error);
-      }
+    app.listen(availablePort, () => {
+      console.log(`Server is running on port ${availablePort}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -66,4 +106,5 @@ const startServer = async () => {
   }
 };
 
+// Start the server
 startServer();

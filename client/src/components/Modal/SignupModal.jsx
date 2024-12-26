@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import '../../styles/Modal.css';
-import { FaTimes, FaUser, FaEnvelope, FaLock, FaGoogle } from 'react-icons/fa';
+import { FaTimes, FaUser, FaEnvelope, FaLock, FaGoogle, FaIdCard, FaGraduationCap, FaLayerGroup } from 'react-icons/fa';
 
 const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    studentId: '',
+    course: '',
+    yearLevel: ''
   });
   const [error, setError] = useState('');
   const [recaptchaToken, setRecaptchaToken] = useState(null);
@@ -38,10 +43,25 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
     }
 
     try {
-      console.log('Signup data:', {
-        ...formData,
-        recaptchaToken
+      const response = await fetch('http://localhost:2025/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          status: 'pending',
+          recaptchaToken
+        }),
       });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to sign up');
+      }
+
+      onClose();
+      navigate('/pending');
     } catch (error) {
       setError(error.message);
     }
@@ -97,6 +117,53 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
                 onChange={handleChange}
                 required
               />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="input-icon">
+              <FaIdCard />
+              <input
+                type="text"
+                name="studentId"
+                placeholder="Student ID"
+                value={formData.studentId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="input-icon">
+              <FaGraduationCap />
+              <input
+                type="text"
+                name="course"
+                placeholder="Course"
+                value={formData.course}
+                onChange={handleChange}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <div className="input-icon">
+              <FaLayerGroup />
+              <select
+                name="yearLevel"
+                value={formData.yearLevel}
+                onChange={handleChange}
+                required
+                className="year-select"
+              >
+                <option value="">Select Year Level</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+              </select>
             </div>
           </div>
           

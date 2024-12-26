@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaCalendar, FaUsers, FaChartBar } from 'react-icons/fa';
 import '../styles/LandingPage.css';
 import logo from '../assets/logo.png';
 import LoginModal from './Modal/LoginModal';
 import SignupModal from './Modal/SignupModal';
 import ForgotPasswordModal from './Modal/ForgotPasswordModal';
+import Loading from './Loading';
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('http://localhost:2025/api/auth/current-user', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.isAuthenticated) {
+          setIsAuthenticated(true);
+          if (data.user.status === 'pending') {
+            navigate('/pending');
+          } else {
+            navigate('/dashboard');
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const openLoginModal = () => {
     setIsLoginOpen(true);
@@ -29,9 +56,33 @@ const LandingPage = () => {
     setIsSignupOpen(false);
   };
 
-  const handleGetStarted = () => {
-    openSignupModal();
+  const closeAllModals = () => {
+    setIsLoginOpen(false);
+    setIsSignupOpen(false);
+    setIsForgotPasswordOpen(false);
   };
+
+  const handleLoginSuccess = () => {
+    closeAllModals();
+    window.location.reload();
+  };
+
+  const handleSignupSuccess = () => {
+    closeAllModals();
+    window.location.reload();
+  };
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <Loading onLoadingComplete={handleLoadingComplete} />;
+  }
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   const features = [
     {
@@ -72,7 +123,7 @@ const LandingPage = () => {
               Streamline your event planning process with our comprehensive platform.
               From registration to analytics, we've got you covered.
             </p>
-            <button className="get-started-btn" onClick={handleGetStarted}>Get Started</button>
+            <button className="get-started-btn" onClick={openSignupModal}>Get Started</button>
           </div>
           <div className="hero-right">
             <img src={logo} alt="EventHub Logo" className="hero-logo" />
@@ -99,18 +150,20 @@ const LandingPage = () => {
 
       <LoginModal 
         isOpen={isLoginOpen} 
-        onClose={() => setIsLoginOpen(false)} 
+        onClose={closeAllModals}
         onSwitchToSignup={openSignupModal}
         onForgotPassword={openForgotPasswordModal}
+        onLoginSuccess={handleLoginSuccess}
       />
       <SignupModal 
         isOpen={isSignupOpen} 
-        onClose={() => setIsSignupOpen(false)}
+        onClose={closeAllModals}
         onSwitchToLogin={openLoginModal}
+        onSignupSuccess={handleSignupSuccess}
       />
       <ForgotPasswordModal
         isOpen={isForgotPasswordOpen}
-        onClose={() => setIsForgotPasswordOpen(false)}
+        onClose={closeAllModals}
         onSwitchToLogin={openLoginModal}
       />
     </div>

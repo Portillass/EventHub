@@ -10,16 +10,19 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
   });
   const [error, setError] = useState('');
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setError(''); // Clear error when user types
   };
 
   const handleRecaptchaChange = (token) => {
     setRecaptchaToken(token);
+    setError(''); // Clear error when recaptcha is completed
   };
 
   const handleSubmit = async (e) => {
@@ -30,30 +33,53 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
       return;
     }
 
+    setIsLoading(true);
     try {
-      console.log('Login data:', {
-        ...formData,
-        recaptchaToken
+      const response = await fetch('http://localhost:2025/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken
+        }),
+        credentials: 'include'
       });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Login failed');
+      }
+
+      const data = await response.json();
+      onClose();
+      window.location.reload(); // Reload to update auth state
     } catch (error) {
-      setError(error.message);
+      setError(error.message || 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = 'http://localhost:2025/api/auth/google';
-  };
-
-  const handleSwitch = (e) => {
-    e.preventDefault();
-    onClose();
-    onSwitchToSignup();
+    try {
+      window.location.href = 'http://localhost:2025/api/auth/google';
+    } catch (error) {
+      setError('Failed to initiate Google login');
+    }
   };
 
   const handleForgotPassword = (e) => {
     e.preventDefault();
     onClose();
     onForgotPassword();
+  };
+
+  const handleSwitch = (e) => {
+    e.preventDefault();
+    onClose();
+    onSwitchToSignup();
   };
 
   if (!isOpen) return null;
@@ -116,8 +142,8 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
             />
           </div>
 
-          <button type="submit" className="submit-button">
-            Sign In
+          <button type="submit" className="submit-button" disabled={isLoading}>
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
           <div className="divider">
@@ -128,6 +154,7 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onForgotPassword }) => 
             type="button" 
             className="google-signin-button"
             onClick={handleGoogleLogin}
+            disabled={isLoading}
           >
             <FaGoogle /> Sign in with Google
           </button>
