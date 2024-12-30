@@ -1,32 +1,30 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import '../../styles/Modal.css';
-import { FaTimes, FaUser, FaEnvelope, FaLock, FaGoogle, FaIdCard, FaGraduationCap, FaLayerGroup } from 'react-icons/fa';
+import { FaTimes, FaUser, FaEnvelope, FaLock, FaGoogle } from 'react-icons/fa';
 
 const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    studentId: '',
-    course: '',
-    yearLevel: ''
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    setError(''); // Clear error when user types
   };
 
   const handleRecaptchaChange = (token) => {
     setRecaptchaToken(token);
+    setError(''); // Clear error when recaptcha is completed
   };
 
   const handleSubmit = async (e) => {
@@ -42,6 +40,7 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       return;
     }
 
+    setIsLoading(true);
     try {
       const response = await fetch('http://localhost:2025/api/auth/signup', {
         method: 'POST',
@@ -49,26 +48,35 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          status: 'pending',
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
           recaptchaToken
         }),
+        credentials: 'include'
       });
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to sign up');
+        const data = await response.json();
+        throw new Error(data.message || 'Signup failed');
       }
 
+      const data = await response.json();
       onClose();
-      navigate('/pending');
+      alert(data.message); // Show success message
     } catch (error) {
-      setError(error.message);
+      setError(error.message || 'An error occurred during signup');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = 'http://localhost:2025/api/auth/google';
+    try {
+      window.location.href = 'http://localhost:2025/api/auth/google';
+    } catch (error) {
+      setError('Failed to initiate Google signup');
+    }
   };
 
   const handleSwitch = (e) => {
@@ -119,53 +127,6 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
               />
             </div>
           </div>
-
-          <div className="form-group">
-            <div className="input-icon">
-              <FaIdCard />
-              <input
-                type="text"
-                name="studentId"
-                placeholder="Student ID"
-                value={formData.studentId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <div className="input-icon">
-              <FaGraduationCap />
-              <input
-                type="text"
-                name="course"
-                placeholder="Course"
-                value={formData.course}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <div className="input-icon">
-              <FaLayerGroup />
-              <select
-                name="yearLevel"
-                value={formData.yearLevel}
-                onChange={handleChange}
-                required
-                className="year-select"
-              >
-                <option value="">Select Year Level</option>
-                <option value="1">1st Year</option>
-                <option value="2">2nd Year</option>
-                <option value="3">3rd Year</option>
-                <option value="4">4th Year</option>
-              </select>
-            </div>
-          </div>
           
           <div className="form-group">
             <div className="input-icon">
@@ -195,12 +156,6 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             </div>
           </div>
           
-          <div className="form-options">
-            <label className="terms">
-              <input type="checkbox" required /> I agree to the Terms & Conditions
-            </label>
-          </div>
-          
           <div className="recaptcha-container">
             <ReCAPTCHA
               sitekey="6Ld7HqMqAAAAAOOpDJ02_2nrAFr_2MSxT-GIeypE"
@@ -208,9 +163,9 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
               theme="dark"
             />
           </div>
-          
-          <button type="submit" className="submit-button">
-            Create Account
+
+          <button type="submit" className="submit-button" disabled={isLoading}>
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
           </button>
 
           <div className="divider">
@@ -221,6 +176,7 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin }) => {
             type="button" 
             className="google-signin-button"
             onClick={handleGoogleSignup}
+            disabled={isLoading}
           >
             <FaGoogle /> Sign up with Google
           </button>
