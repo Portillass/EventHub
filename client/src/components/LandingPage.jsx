@@ -6,7 +6,6 @@ import logo from '../assets/logo.png';
 import LoginModal from './Modal/LoginModal';
 import SignupModal from './Modal/SignupModal';
 import ForgotPasswordModal from './Modal/ForgotPasswordModal';
-import Loading from './Loading';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -14,7 +13,6 @@ const LandingPage = () => {
   const [isSignupOpen, setIsSignupOpen] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -72,14 +70,6 @@ const LandingPage = () => {
     window.location.reload();
   };
 
-  const handleLoadingComplete = () => {
-    setIsLoading(false);
-  };
-
-  if (isLoading) {
-    return <Loading onLoadingComplete={handleLoadingComplete} />;
-  }
-
   if (isAuthenticated) {
     return null;
   }
@@ -115,7 +105,7 @@ const LandingPage = () => {
       </header>
 
       <main>
-        <section className="hero">
+        <figure className="hero">
           <div className="hero-content">
             <h1>EventHub</h1>
             <p className="subtitle">Your Complete Event Management Solution</p>
@@ -128,13 +118,13 @@ const LandingPage = () => {
           <div className="hero-right">
             <img src={logo} alt="EventHub Logo" className="hero-logo" />
           </div>
-        </section>
+        </figure>
 
         <section className="features">
           <h2>Our Features</h2>
           <div className="features-grid">
             {features.map((feature, index) => (
-              <div key={index} className="feature-card">
+              <div key={index} className="feature-card" style={{ '--card-index': index }}>
                 <div className="feature-icon">{feature.icon}</div>
                 <h3>{feature.title}</h3>
                 <p>{feature.description}</p>

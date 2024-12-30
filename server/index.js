@@ -1,110 +1,97 @@
-const dotenv = require('dotenv');
-dotenv.config();
-
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
-const authRoutes = require('./routes/auth');
+const MongoStore = require('connect-mongo');
+const path = require('path');
 
 const app = express();
+const PORT = process.env.PORT || 2025;
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Handle favicon.ico requests
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: process.env.CLIENT_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'your_session_secret_key',
   resave: false,
   saveUninitialized: false,
-  cookie: { 
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 24 * 60 * 60 // 1 day
+  }),
+  cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
-// Initialize passport
+// Passport configuration
+require('./config/passport')(passport);
 app.use(passport.initialize());
 app.use(passport.session());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
+// Debug route to check session
+app.get('/api/debug/session', (req, res) => {
+  console.log('Session:', req.session);
+  console.log('User:', req.user);
+  res.json({
+    session: req.session,
+    user: req.user
   });
-
-// Basic route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to the Event Management System API' });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error:', err.stack);
+  res.status(500).json({ 
+    message: 'Something went wrong!', 
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
 });
 
-// Function to find an available port
-const findAvailablePort = async (startPort) => {
-  const maxPort = 65535; // Maximum valid port number
-  let currentPort = parseInt(startPort);
-
-  while (currentPort <= maxPort) {
-    try {
-      await new Promise((resolve, reject) => {
-        const server = app.listen(currentPort)
-          .once('listening', () => {
-            server.close();
-            resolve(currentPort);
-          })
-          .once('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-              resolve(null);
-            } else {
-              reject(err);
-            }
-          });
-      });
-
-      return currentPort;
-    } catch (error) {
-      console.error(`Error trying port ${currentPort}:`, error);
-    }
-    currentPort++;
-  }
-
-  throw new Error('No available ports found');
-};
-
-// Start server
-const startServer = async () => {
-  try {
-    const desiredPort = process.env.PORT || 2025;
-    const availablePort = await findAvailablePort(desiredPort);
-    
-    if (!availablePort) {
-      throw new Error('No available ports found');
-    }
-
-    app.listen(availablePort, () => {
-      console.log(`Server is running on port ${availablePort}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
+// Start server with error handling
+const server = app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Please try these steps:`);
+    console.error('1. Stop any other servers that might be running');
+    console.error(`2. Run: netstat -ano | findstr :${PORT}`);
+    console.error('3. Kill the process using that port with: taskkill /PID <PID> /F');
+    console.error('4. Try starting the server again');
+    process.exit(1);
+  } else {
+    console.error('Server error:', err);
     process.exit(1);
   }
-};
-
-// Start the server
-startServer();
+});

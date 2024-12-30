@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import LandingPage from './components/LandingPage'
-import AdminDashboard from './components/dashboards/AdminDashboard'
-import OfficerDashboard from './components/dashboards/OfficerDashboard'
-import StudentDashboard from './components/dashboards/StudentDashboard'
-import PendingPage from './components/PendingPage'
+import AdminDashboard from './components/dashboards/admin/AdminDashboard'
+import OfficerDashboard from './components/dashboards/officer/OfficerDashboard'
+import StudentDashboard from './components/dashboards/student/StudentDashboard'
+import PendingUsers from './components/dashboards/pending/PendingUsers'
 import Loading from './components/Loading'
+
+// Silence React Router future warnings
+const router = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+};
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -38,22 +46,25 @@ function App() {
         setUserRole(null)
         setUserStatus(null)
       }
-      setIsLoading(false)
     }
 
     checkAuth()
   }, [])
 
+  const handleLoadingComplete = () => {
+    setIsLoading(false)
+  }
+
   if (isLoading) {
-    return <Loading />
+    return <Loading onLoadingComplete={handleLoadingComplete} />
   }
 
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           isAuthenticated ? (
             userStatus === 'pending' ? (
@@ -70,18 +81,18 @@ function App() {
           ) : (
             <Navigate to="/" replace />
           )
-        } 
+        }
       />
-
-      <Route 
+      
+      <Route
         path="/pending" 
         element={
           isAuthenticated && userStatus === 'pending' ? (
-            <PendingPage />
+            <PendingUsers />
           ) : (
             <Navigate to="/" replace />
           )
-        } 
+        }
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />

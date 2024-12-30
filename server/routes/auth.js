@@ -1,86 +1,77 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const User = require('../models/User');
+const nodemailer = require('nodemailer');
 const { verifyRecaptcha } = require('../middleware/recaptcha');
 
-// Google OAuth configuration
-try {
-  const googleConfig = {
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
-    proxy: true
-  };
-
-  // Initialize Google Strategy only if credentials are available
-  if (googleConfig.clientID && googleConfig.clientSecret && googleConfig.callbackURL) {
-    passport.use(new GoogleStrategy(googleConfig, async (accessToken, refreshToken, profile, done) => {
-      try {
-        // Check if the email matches admin email
-        const isAdmin = profile.emails[0].value === process.env.ADMIN_EMAIL;
-        
-        const userData = {
-          googleId: profile.id,
-          email: profile.emails[0].value,
-          name: profile.displayName,
-          picture: profile.photos[0].value,
-          role: isAdmin ? 'admin' : 'student' // Set role based on email
-        };
-
-        // Here you would typically save this to your database
-        // For now, we'll just pass it through
-        done(null, userData);
-      } catch (error) {
-        done(error, null);
-      }
-    }));
-  } else {
-    console.warn('Google OAuth credentials not properly configured');
+// Email transporter setup
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
-} catch (error) {
-  console.error('Error configuring Google OAuth:', error);
-}
-
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-  done(null, user);
 });
 
 // Google OAuth routes
 router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    prompt: 'select_account'
+  })
 );
 
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    try {
-      const user = req.user;
+  (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+      if (err) {
+        console.error('Google Auth Error:', err);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+      }
       
-      // Check if user is admin
-      if (user.email === process.env.ADMIN_EMAIL) {
-        req.session.user = {
-          ...user,
-          role: 'admin'
-        };
-        return res.redirect(`${process.env.CLIENT_URL}/admin`);
+      if (!user) {
+        console.log('No user found:', info);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=unauthorized`);
       }
 
-      // Set regular user session data
-      req.session.user = {
-        ...user,
-        role: 'student'
-      };
-      
-      res.redirect(`${process.env.CLIENT_URL}/student`);
-    } catch (error) {
-      console.error('Error during Google callback:', error);
-      res.redirect(`${process.env.CLIENT_URL}/?error=auth_failed`);
-    }
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error('Login Error:', err);
+          return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+        }
+
+        // Set session data
+        req.session.user = {
+          id: user._id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          status: user.status
+        };
+
+        // Save session before redirect
+        req.session.save((err) => {
+          if (err) {
+            console.error('Session Save Error:', err);
+            return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+          }
+
+          // Redirect based on role and status
+          if (user.status === 'pending') {
+            return res.redirect(`${process.env.CLIENT_URL}/pending`);
+          }
+
+          if (user.role === 'admin') {
+            return res.redirect(`${process.env.CLIENT_URL}/dashboard`);
+          } else if (user.role === 'officer') {
+            return res.redirect(`${process.env.CLIENT_URL}/officer`);
+          } else {
+            return res.redirect(`${process.env.CLIENT_URL}/student`);
+          }
+        });
+      });
+    })(req, res, next);
   }
 );
 
@@ -128,21 +119,114 @@ router.post('/logout', (req, res) => {
 router.post('/login', verifyRecaptcha, async (req, res) => {
   try {
     const { email, password } = req.body;
-    // Your login logic here
-    res.json({ message: 'Login successful' });
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is pending
+    if (user.status === 'pending') {
+      return res.status(403).json({ 
+        message: 'Your account is pending approval' 
+      });
+    }
+
+    // Check if user is archived
+    if (user.status === 'archived') {
+      return res.status(403).json({ 
+        message: 'Your account has been archived' 
+      });
+    }
+
+    // Set session
+    req.session.user = {
+      id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      status: user.status
+    };
+
+    res.json({ 
+      message: 'Login successful',
+      user: req.session.user
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Login failed', error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      message: 'Login failed', 
+      error: error.message 
+    });
   }
 });
 
 // Signup route with reCAPTCHA verification
 router.post('/signup', verifyRecaptcha, async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
-    // Your signup logic here
-    res.json({ message: 'Signup successful' });
+    const { fullName, email, password, studentId, course, yearLevel } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      $or: [{ email }, { studentId }] 
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: 'User with this email or student ID already exists' 
+      });
+    }
+
+    // Create new user
+    const user = new User({
+      fullName,
+      email,
+      password,
+      studentId,
+      course,
+      yearLevel,
+      status: 'pending'
+    });
+
+    await user.save();
+
+    // Send email to admin
+    const adminMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.ADMIN_EMAIL,
+      subject: 'New User Registration - EventHub',
+      html: `
+        <h1>New User Registration</h1>
+        <p>A new user has registered and is pending approval:</p>
+        <ul>
+          <li>Name: ${fullName}</li>
+          <li>Email: ${email}</li>
+          <li>Student ID: ${studentId}</li>
+          <li>Course: ${course}</li>
+          <li>Year Level: ${yearLevel}</li>
+        </ul>
+        <p>Please log in to the admin dashboard to review this registration.</p>
+      `
+    };
+
+    await transporter.sendMail(adminMailOptions);
+
+    res.status(201).json({ 
+      message: 'Signup successful. Please wait for admin approval.' 
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Signup failed', error: error.message });
+    console.error('Signup error:', error);
+    res.status(500).json({ 
+      message: 'Signup failed', 
+      error: error.message 
+    });
   }
 });
 
