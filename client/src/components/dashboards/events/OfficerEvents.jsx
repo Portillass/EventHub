@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
 import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
-import '../../../styles/Events.css';
 import { useNavigate } from 'react-router-dom';
+import '../../../styles/Events.css';
 
 export default function OfficerEvents() {
   const [events, setEvents] = useState([]);
@@ -11,45 +11,51 @@ export default function OfficerEvents() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     date: '',
     location: ''
   });
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchEvents();
+    checkAuthAndFetchEvents();
   }, []);
 
-  const fetchEvents = async () => {
+  const checkAuthAndFetchEvents = async () => {
     try {
-      // First get the current user
-      const userResponse = await axios.get('http://localhost:2025/api/auth/current-user', {
+      const authResponse = await axios.get('http://localhost:2025/api/auth/current-user', {
         withCredentials: true
       });
 
-      if (!userResponse.data.isAuthenticated || userResponse.data.user.role !== 'officer') {
+      if (!authResponse.data.isAuthenticated || authResponse.data.user.role !== 'officer') {
         navigate('/');
         return;
       }
 
-      const currentUserId = userResponse.data.user.id;
+      await fetchEvents();
+    } catch (error) {
+      console.error('Authentication check failed:', error);
+      navigate('/');
+    }
+  };
 
-      // Then fetch events
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
       const response = await axios.get('http://localhost:2025/api/events', {
         withCredentials: true
       });
-
-      // Filter to show only events created by this officer
-      setEvents(response.data.filter(event => event.createdBy?._id === currentUserId));
+      setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
-      if (error.response?.status === 401) {
-        navigate('/');
-      }
+      setError('Failed to load events. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,16 +80,15 @@ export default function OfficerEvents() {
           withCredentials: true
         });
       } else {
-        const response = await axios.post('http://localhost:2025/api/events', eventData, {
+        await axios.post('http://localhost:2025/api/events', eventData, {
           withCredentials: true
         });
-        console.log('Event created:', response.data);
       }
 
       setShowModal(false);
       setSelectedEvent(null);
       setFormData({ title: '', description: '', date: '', location: '' });
-      fetchEvents();
+      await fetchEvents();
     } catch (error) {
       console.error('Error saving event:', error);
       setError(error.response?.data?.message || 'Failed to save event. Please try again.');
@@ -96,9 +101,10 @@ export default function OfficerEvents() {
         await axios.delete(`http://localhost:2025/api/events/${eventId}`, {
           withCredentials: true
         });
-        fetchEvents();
+        await fetchEvents();
       } catch (error) {
         console.error('Error deleting event:', error);
+        setError('Failed to delete event. Please try again.');
       }
     }
   };
@@ -122,6 +128,19 @@ export default function OfficerEvents() {
     
     return statusFilter === 'all' ? matchesSearch : (matchesSearch && event.status === statusFilter);
   });
+
+  if (error) {
+    return (
+      <div className="events-container">
+        <div className="error-message">
+          <p>{error}</p>
+          <button onClick={fetchEvents} className="retry-button">
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="events-container">
@@ -163,51 +182,63 @@ export default function OfficerEvents() {
       </div>
 
       <div className="events-table-container">
-        <table className="events-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Date</th>
-              <th>Location</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredEvents.map((event) => (
-              <tr key={event._id}>
-                <td>{event.title}</td>
-                <td>{event.description}</td>
-                <td>{format(new Date(event.date), 'MMM dd, yyyy')}</td>
-                <td>{event.location}</td>
-                <td>
-                  <span className={`status-badge ${event.status}`}>
-                    {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <button
-                      onClick={() => handleEdit(event)}
-                      className="action-btn edit"
-                      title="Edit"
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(event._id)}
-                      className="action-btn delete"
-                      title="Delete"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </td>
+        {loading ? (
+          <div className="loading-message">Loading events...</div>
+        ) : filteredEvents.length > 0 ? (
+          <table className="events-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredEvents.map((event) => (
+                <tr key={event._id}>
+                  <td>{event.title}</td>
+                  <td>{event.description}</td>
+                  <td>{format(new Date(event.date), 'MMM dd, yyyy')}</td>
+                  <td>{event.location}</td>
+                  <td>
+                    <span className={`status-badge ${event.status}`}>
+                      {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        onClick={() => handleEdit(event)}
+                        className="action-btn edit"
+                        title="Edit"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(event._id)}
+                        className="action-btn delete"
+                        title="Delete"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="no-events-message">
+            {searchTerm || statusFilter !== 'all' ? (
+              <p>No events found matching your search criteria.</p>
+            ) : (
+              <p>No events available. Create your first event!</p>
+            )}
+          </div>
+        )}
       </div>
 
       {showModal && (

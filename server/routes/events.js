@@ -3,14 +3,17 @@ const router = express.Router();
 const Event = require('../models/Event');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
-// Get all events (filtered by status and role)
+// Get all events (filtered by role)
 router.get('/', authenticateToken, async (req, res) => {
   try {
     let query = {};
     
     // Students can only see approved events
     if (req.user.role === 'student') {
-      query.status = 'approved';
+      query = {
+        status: 'approved',
+        date: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } // Start of today
+      };
     }
     // Officers can only see their own events
     else if (req.user.role === 'officer') {
@@ -21,10 +24,18 @@ router.get('/', authenticateToken, async (req, res) => {
     const events = await Event.find(query)
       .populate('createdBy', 'firstName lastName email')
       .populate('approvedBy', 'firstName lastName email')
-      .sort({ createdAt: -1 });
+      .sort({ date: 1 }); // Sort by date ascending for students to see upcoming events first
 
-    res.json(events);
+    // Format the response based on role
+    const formattedEvents = events.map(event => {
+      const eventObj = event.toObject();
+      eventObj.date = new Date(eventObj.date).toISOString();
+      return eventObj;
+    });
+
+    res.json(formattedEvents);
   } catch (error) {
+    console.error('Error fetching events:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -49,12 +60,10 @@ router.post('/', authenticateToken, authorizeRoles(['officer']), async (req, res
       date: new Date(date),
       location: location,
       createdBy: req.user.id,
-      status: 'pending'
+      status: 'pending' // All new events start as pending
     });
 
     const newEvent = await event.save();
-    
-    // Populate creator details before sending response
     await newEvent.populate('createdBy', 'firstName lastName email');
     
     res.status(201).json(newEvent);
@@ -75,23 +84,32 @@ router.put('/:id', authenticateToken, authorizeRoles(['officer', 'admin']), asyn
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    if (req.user.role === 'officer' && event.createdBy.toString() !== req.user._id.toString()) {
+    // Officers can only update their own events
+    if (req.user.role === 'officer' && event.createdBy.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to update this event' });
     }
 
-    Object.assign(event, req.body);
+    // Don't allow status changes through this route
+    const { status, ...updateData } = req.body;
+    Object.assign(event, updateData);
+    
     const updatedEvent = await event.save();
+    await updatedEvent.populate('createdBy', 'firstName lastName email');
+    if (updatedEvent.approvedBy) {
+      await updatedEvent.populate('approvedBy', 'firstName lastName email');
+    }
+    
     res.json(updatedEvent);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
-// Approve/Archive event (Admin only)
+// Update event status (Admin only)
 router.post('/:id/status', authenticateToken, authorizeRoles(['admin']), async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['approved', 'archived'].includes(status)) {
+    if (!['approved', 'archived', 'pending'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
@@ -102,11 +120,19 @@ router.post('/:id/status', authenticateToken, authorizeRoles(['admin']), async (
 
     event.status = status;
     if (status === 'approved') {
-      event.approvedBy = req.user._id;
+      event.approvedBy = req.user.id;
       event.approvedAt = new Date();
+    } else if (status === 'pending') {
+      event.approvedBy = null;
+      event.approvedAt = null;
     }
 
     const updatedEvent = await event.save();
+    await updatedEvent.populate('createdBy', 'firstName lastName email');
+    if (updatedEvent.approvedBy) {
+      await updatedEvent.populate('approvedBy', 'firstName lastName email');
+    }
+    
     res.json(updatedEvent);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -121,12 +147,13 @@ router.delete('/:id', authenticateToken, authorizeRoles(['officer', 'admin']), a
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    if (req.user.role === 'officer' && event.createdBy.toString() !== req.user._id.toString()) {
+    // Officers can only delete their own events
+    if (req.user.role === 'officer' && event.createdBy.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Not authorized to delete this event' });
     }
 
     await event.deleteOne();
-    res.json({ message: 'Event deleted' });
+    res.json({ message: 'Event deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

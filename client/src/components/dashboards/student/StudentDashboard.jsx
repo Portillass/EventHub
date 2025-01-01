@@ -11,7 +11,8 @@ const StudentDashboard = () => {
     upcomingEvents: 0,
     completedEvents: 0
   });
-  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'events'
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -34,25 +35,29 @@ const StudentDashboard = () => {
       }
 
       setUserData(data.user);
-      // Fetch dashboard stats here
+      // Fetch dashboard stats
       const eventsResponse = await fetch('http://localhost:2025/api/events', {
         credentials: 'include'
       });
 
       if (eventsResponse.ok) {
-        const events = await eventsResponse.json();
-        const approvedEvents = events.filter(event => event.status === 'approved');
+        const eventsData = await eventsResponse.json();
+        const approvedEvents = eventsData.filter(event => event.status === 'approved');
         const now = new Date();
+        const upcomingEvents = approvedEvents.filter(event => new Date(event.date) >= now);
+        const pastEvents = approvedEvents.filter(event => new Date(event.date) < now);
         
         setStats({
           registeredEvents: approvedEvents.length,
-          upcomingEvents: approvedEvents.filter(event => new Date(event.date) > now).length,
-          completedEvents: approvedEvents.filter(event => new Date(event.date) <= now).length
+          upcomingEvents: upcomingEvents.length,
+          completedEvents: pastEvents.length
         });
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       navigate('/');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,43 +82,45 @@ const StudentDashboard = () => {
         return <StudentEvents />;
       default:
         return (
-          <div className="dashboard-grid">
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Registered Events</h3>
-                <div className="card-icon">
-                  <i className="fas fa-calendar-check"></i>
+          <div className="dashboard-content">
+            <div className="dashboard-grid">
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Registered Events</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-calendar-check"></i>
+                  </div>
+                </div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.registeredEvents}</div>
+                  <div className="stat-label">Total events registered</div>
                 </div>
               </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.registeredEvents}</div>
-                <div className="stat-label">Total events registered</div>
-              </div>
-            </div>
 
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Upcoming Events</h3>
-                <div className="card-icon">
-                  <i className="fas fa-clock"></i>
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Upcoming Events</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-clock"></i>
+                  </div>
+                </div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.upcomingEvents}</div>
+                  <div className="stat-label">Events this month</div>
                 </div>
               </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.upcomingEvents}</div>
-                <div className="stat-label">Events this month</div>
-              </div>
-            </div>
 
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Completed Events</h3>
-                <div className="card-icon">
-                  <i className="fas fa-check-circle"></i>
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Completed Events</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
                 </div>
-              </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.completedEvents}</div>
-                <div className="stat-label">Events attended</div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.completedEvents}</div>
+                  <div className="stat-label">Events attended</div>
+                </div>
               </div>
             </div>
           </div>
