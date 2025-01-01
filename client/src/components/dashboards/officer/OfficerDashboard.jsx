@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Dashboard.css';
+import OfficerEvents from '../events/OfficerEvents';
 
 const OfficerDashboard = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const OfficerDashboard = () => {
     totalStudents: 0
   });
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
+  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events'
 
   useEffect(() => {
     checkAuth();
@@ -168,6 +170,199 @@ const OfficerDashboard = () => {
     }
   };
 
+  const renderMainContent = () => {
+    switch (activeSection) {
+      case 'events':
+        return <OfficerEvents />;
+      case 'users':
+        return (
+          <>
+            <div className="section-header">
+              <div className="tab-buttons">
+                <button 
+                  className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('pending')}
+                >
+                  Pending Users
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('all')}
+                >
+                  All Users
+                </button>
+              </div>
+              <button 
+                className="view-all-btn" 
+                onClick={activeTab === 'pending' ? fetchPendingUsers : fetchAllUsers}
+              >
+                <i className="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+
+            <div className="events-table">
+              {activeTab === 'pending' ? (
+                pendingUsers.length === 0 ? (
+                  <div className="no-pending">No pending users at the moment.</div>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingUsers.map(user => (
+                        <tr key={user._id}>
+                          <td>{user.fullName}</td>
+                          <td>{user.email}</td>
+                          <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                          <td>
+                            <div className="action-buttons">
+                              <button
+                                onClick={() => handleUserAction(user._id, 'approve', 'student')}
+                                className="action-btn approve-student"
+                                title="Approve as Student"
+                              >
+                                <i className="fas fa-user-graduate"></i>
+                              </button>
+                              <button
+                                onClick={() => handleUserAction(user._id, 'archive')}
+                                className="action-btn archive"
+                                title="Archive User"
+                              >
+                                <i className="fas fa-archive"></i>
+                              </button>
+                              <button
+                                onClick={() => handleUserAction(user._id, 'delete')}
+                                className="action-btn delete"
+                                title="Delete User"
+                              >
+                                <i className="fas fa-trash-alt"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Registration Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allUsers.map(user => (
+                      <tr key={user._id}>
+                        <td>{user.fullName}</td>
+                        <td>{user.email}</td>
+                        <td>
+                          <span className={getRoleBadgeClass(user.role)}>
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={getStatusBadgeClass(user.status)}>
+                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          </span>
+                        </td>
+                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <div className="action-buttons">
+                            {user.role !== 'admin' && user.role !== 'officer' && (
+                              <>
+                                {user.status !== 'active' && (
+                                  <button
+                                    onClick={() => handleUserAction(user._id, 'approve', 'student')}
+                                    className="action-btn approve-student"
+                                    title="Approve as Student"
+                                  >
+                                    <i className="fas fa-user-graduate"></i>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleUserAction(user._id, 'archive')}
+                                  className="action-btn archive"
+                                  title="Archive User"
+                                >
+                                  <i className="fas fa-archive"></i>
+                                </button>
+                                <button
+                                  onClick={() => handleUserAction(user._id, 'delete')}
+                                  className="action-btn delete"
+                                  title="Delete User"
+                                >
+                                  <i className="fas fa-trash-alt"></i>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </>
+        );
+      default:
+        return (
+          <div className="dashboard-grid">
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h3>Total Events</h3>
+                <div className="card-icon">
+                  <i className="fas fa-calendar"></i>
+                </div>
+              </div>
+              <div className="card-content">
+                <div className="stat-number">{stats.totalEvents}</div>
+                <div className="stat-label">Events Created</div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h3>Upcoming Events</h3>
+                <div className="card-icon">
+                  <i className="fas fa-clock"></i>
+                </div>
+              </div>
+              <div className="card-content">
+                <div className="stat-number">{stats.upcomingEvents}</div>
+                <div className="stat-label">Events This Month</div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <h3>Member Count</h3>
+                <div className="card-icon">
+                  <i className="fas fa-users"></i>
+                </div>
+              </div>
+              <div className="card-content">
+                <div className="stat-number">{stats.memberCount}</div>
+                <div className="stat-label">Active Members</div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   if (loading) {
     return (
       <div className="dashboard">
@@ -186,34 +381,54 @@ const OfficerDashboard = () => {
         </div>
         
         <nav className="nav-links">
-          <a href="#dashboard" className="nav-link active">
+          <a 
+            href="#dashboard" 
+            className={`nav-link ${activeSection === 'dashboard' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('dashboard');
+            }}
+          >
             <i className="fas fa-home"></i>
             Dashboard
           </a>
-          <a href="#users" className="nav-link">
+          <a 
+            href="#users" 
+            className={`nav-link ${activeSection === 'users' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('users');
+            }}
+          >
             <i className="fas fa-users"></i>
             Users
             {stats.totalPending > 0 && (
               <span className="badge">{stats.totalPending}</span>
             )}
           </a>
-          <a href="#events" className="nav-link">
+          <a 
+            href="#events" 
+            className={`nav-link ${activeSection === 'events' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('events');
+            }}
+          >
             <i className="fas fa-calendar-alt"></i>
             Events
-          </a>
-          <a href="#reports" className="nav-link">
-            <i className="fas fa-chart-bar"></i>
-            Reports
           </a>
           <a href="#settings" className="nav-link">
             <i className="fas fa-cog"></i>
             Settings
           </a>
-          <a href="#" onClick={handleLogout} className="nav-link">
+        </nav>
+
+        <div className="sidebar-footer">
+          <button onClick={handleLogout} className="logout-btn">
             <i className="fas fa-sign-out-alt"></i>
             Logout
-          </a>
-        </nav>
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -240,187 +455,7 @@ const OfficerDashboard = () => {
         {error && <div className="error-message">{error}</div>}
         {successMessage && <div className="success-message">{successMessage}</div>}
 
-        <div className="dashboard-grid">
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h3>Pending Users</h3>
-              <div className="card-icon warning">
-                <i className="fas fa-user-clock"></i>
-              </div>
-            </div>
-            <div className="card-content">
-              <div className="stat-number">{stats.totalPending}</div>
-              <div className="stat-label">Awaiting Approval</div>
-            </div>
-          </div>
-
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h3>Active Students</h3>
-              <div className="card-icon success">
-                <i className="fas fa-user-graduate"></i>
-              </div>
-            </div>
-            <div className="card-content">
-              <div className="stat-number">{stats.totalStudents}</div>
-              <div className="stat-label">Registered Students</div>
-            </div>
-          </div>
-
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h3>Total Events</h3>
-              <div className="card-icon info">
-                <i className="fas fa-calendar"></i>
-              </div>
-            </div>
-            <div className="card-content">
-              <div className="stat-number">{stats.totalEvents}</div>
-              <div className="stat-label">Events Organized</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="recent-events">
-          <div className="section-header">
-            <div className="tab-buttons">
-              <button 
-                className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-                onClick={() => setActiveTab('pending')}
-              >
-                Pending Users
-              </button>
-              <button 
-                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveTab('all')}
-              >
-                All Users
-              </button>
-            </div>
-            <button 
-              className="view-all-btn" 
-              onClick={activeTab === 'pending' ? fetchPendingUsers : fetchAllUsers}
-            >
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-
-          <div className="events-table">
-            {activeTab === 'pending' ? (
-              pendingUsers.length === 0 ? (
-                <div className="no-pending">No pending users at the moment.</div>
-              ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Registration Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingUsers.map(user => (
-                      <tr key={user._id}>
-                        <td>{user.fullName}</td>
-                        <td>{user.email}</td>
-                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                        <td>
-                          <div className="action-buttons">
-                            <button
-                              onClick={() => handleUserAction(user._id, 'approve', 'student')}
-                              className="action-btn approve-student"
-                              title="Approve as Student"
-                            >
-                              <i className="fas fa-user-graduate"></i>
-                            </button>
-                            <button
-                              onClick={() => handleUserAction(user._id, 'archive')}
-                              className="action-btn archive"
-                              title="Archive User"
-                            >
-                              <i className="fas fa-archive"></i>
-                            </button>
-                            <button
-                              onClick={() => handleUserAction(user._id, 'delete')}
-                              className="action-btn delete"
-                              title="Delete User"
-                            >
-                              <i className="fas fa-trash-alt"></i>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allUsers.map(user => (
-                    <tr key={user._id}>
-                      <td>{user.fullName}</td>
-                      <td>{user.email}</td>
-                      <td>
-                        <span className={getRoleBadgeClass(user.role)}>
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={getStatusBadgeClass(user.status)}>
-                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                        </span>
-                      </td>
-                      <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td>
-                        <div className="action-buttons">
-                          {user.role !== 'admin' && user.role !== 'officer' && (
-                            <>
-                              {user.status !== 'active' && (
-                                <button
-                                  onClick={() => handleUserAction(user._id, 'approve', 'student')}
-                                  className="action-btn approve-student"
-                                  title="Approve as Student"
-                                >
-                                  <i className="fas fa-user-graduate"></i>
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleUserAction(user._id, 'archive')}
-                                className="action-btn archive"
-                                title="Archive User"
-                              >
-                                <i className="fas fa-archive"></i>
-                              </button>
-                              <button
-                                onClick={() => handleUserAction(user._id, 'delete')}
-                                className="action-btn delete"
-                                title="Delete User"
-                              >
-                                <i className="fas fa-trash-alt"></i>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+        {renderMainContent()}
       </main>
     </div>
   );

@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 2025;
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const eventRoutes = require('./routes/events');
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -58,6 +59,7 @@ app.use(passport.session());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/events', eventRoutes);
 
 // Debug route to check session
 app.get('/api/debug/session', (req, res) => {
