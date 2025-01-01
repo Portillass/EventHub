@@ -17,16 +17,13 @@ const userSchema = new mongoose.Schema({
   },
   studentId: {
     type: String,
-    required: true,
-    unique: true
+    sparse: true
   },
   course: {
-    type: String,
-    required: true
+    type: String
   },
   yearLevel: {
-    type: String,
-    required: true
+    type: String
   },
   role: {
     type: String,

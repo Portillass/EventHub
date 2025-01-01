@@ -4,64 +4,100 @@ import '../../../styles/Dashboard.css';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [userData, setUserData] = useState(null);
   const [pendingUsers, setPendingUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
   const [stats, setStats] = useState({
     totalPending: 0,
     totalStudents: 0,
     totalOfficers: 0
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    checkAuth();
+    fetchPendingUsers();
+    fetchAllUsers();
+    fetchStats();
+  }, []);
 
-        // Fetch user stats
-        const statsResponse = await fetch('http://localhost:2025/api/users/stats', {
-          credentials: 'include'
-        });
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('http://localhost:2025/api/auth/current-user', {
+        credentials: 'include'
+      });
 
-        if (!statsResponse.ok) {
-          if (statsResponse.status === 401) {
-            navigate('/');
-            return;
-          }
-          throw new Error('Failed to fetch user statistics');
-        }
-
-        const statsData = await statsResponse.json();
-        setStats(statsData);
-
-        // Fetch pending users
-        const pendingResponse = await fetch('http://localhost:2025/api/users/pending', {
-          credentials: 'include'
-        });
-
-        if (!pendingResponse.ok) {
-          throw new Error('Failed to fetch pending users');
-        }
-
-        const pendingData = await pendingResponse.json();
-        setPendingUsers(pendingData);
-      } catch (error) {
-        console.error('Dashboard error:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Not authenticated');
       }
-    };
 
-    fetchData();
-  }, [navigate]);
+      const data = await response.json();
+      if (!data.isAuthenticated || data.user.role !== 'admin') {
+        navigate('/');
+        return;
+      }
 
-  const handleApproveUser = async (userId, role) => {
+      setUserData(data.user);
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      navigate('/');
+    }
+  };
+
+  const fetchPendingUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:2025/api/users/pending', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch pending users');
+      const data = await response.json();
+      setPendingUsers(data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:2025/api/users/all', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch all users');
+      const data = await response.json();
+      setAllUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch all users:', error);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://localhost:2025/api/users/stats', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const handleUserAction = async (userId, action, role = null) => {
     try {
       setError(null);
-      const response = await fetch(`http://localhost:2025/api/users/${userId}/approve`, {
+      const endpoint = action === 'delete' 
+        ? `http://localhost:2025/api/users/${userId}/delete`
+        : action === 'archive'
+        ? `http://localhost:2025/api/users/${userId}/archive`
+        : `http://localhost:2025/api/users/${userId}/approve`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -70,68 +106,20 @@ const AdminDashboard = () => {
         body: JSON.stringify({ role })
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to approve user');
-      }
+      if (!response.ok) throw new Error('Failed to update user');
+      
+      const data = await response.json();
+      setSuccessMessage(data.message);
+      
+      // Refresh data
+      fetchPendingUsers();
+      fetchAllUsers();
+      fetchStats();
 
-      setPendingUsers(pendingUsers.filter(user => user._id !== userId));
-      setStats(prev => ({
-        ...prev,
-        totalPending: prev.totalPending - 1,
-        [role === 'student' ? 'totalStudents' : 'totalOfficers']: 
-          prev[role === 'student' ? 'totalStudents' : 'totalOfficers'] + 1
-      }));
-      setSuccessMessage('User approved successfully');
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-  const handleArchiveUser = async (userId) => {
-    try {
-      setError(null);
-      const response = await fetch(`http://localhost:2025/api/users/${userId}/archive`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to archive user');
-      }
-
-      setPendingUsers(pendingUsers.filter(user => user._id !== userId));
-      setStats(prev => ({
-        ...prev,
-        totalPending: prev.totalPending - 1
-      }));
-      setSuccessMessage('User archived successfully');
-    } catch (error) {
-      setError(error.message);
-    }
-  };
-
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
-
-    try {
-      setError(null);
-      const response = await fetch(`http://localhost:2025/api/users/${userId}/delete`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
-
-      setPendingUsers(pendingUsers.filter(user => user._id !== userId));
-      setStats(prev => ({
-        ...prev,
-        totalPending: prev.totalPending - 1
-      }));
-      setSuccessMessage('User deleted successfully');
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
     } catch (error) {
       setError(error.message);
     }
@@ -148,31 +136,53 @@ const AdminDashboard = () => {
         navigate('/');
       }
     } catch (error) {
-      setError('Failed to logout');
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'active':
+        return 'status-badge approved';
+      case 'pending':
+        return 'status-badge pending';
+      case 'archived':
+        return 'status-badge rejected';
+      default:
+        return 'status-badge';
+    }
+  };
+
+  const getRoleBadgeClass = (role) => {
+    switch (role) {
+      case 'admin':
+        return 'role-badge admin';
+      case 'officer':
+        return 'role-badge officer';
+      case 'student':
+        return 'role-badge student';
+      default:
+        return 'role-badge';
     }
   };
 
   if (loading) {
     return (
       <div className="dashboard">
-        <div className="loading-overlay">
-          <div className="loading-spinner"></div>
-          <p>Loading dashboard...</p>
-        </div>
+        <div className="loading">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="dashboard">
+      {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-header">
-          <div className="brand-logo">
-            <i className="fas fa-user-shield"></i>
-          </div>
-          <h1 className="brand-name">Admin</h1>
+          <i className="fas fa-shield-alt brand-logo"></i>
+          <h1 className="brand-name">EventHub</h1>
         </div>
-
+        
         <nav className="nav-links">
           <a href="#dashboard" className="nav-link active">
             <i className="fas fa-home"></i>
@@ -181,14 +191,21 @@ const AdminDashboard = () => {
           <a href="#users" className="nav-link">
             <i className="fas fa-users"></i>
             Users
+            {stats.totalPending > 0 && (
+              <span className="badge">{stats.totalPending}</span>
+            )}
           </a>
           <a href="#events" className="nav-link">
-            <i className="fas fa-calendar"></i>
+            <i className="fas fa-calendar-alt"></i>
             Events
           </a>
           <a href="#reports" className="nav-link">
             <i className="fas fa-chart-bar"></i>
             Reports
+          </a>
+          <a href="#settings" className="nav-link">
+            <i className="fas fa-cog"></i>
+            Settings
           </a>
         </nav>
 
@@ -200,20 +217,29 @@ const AdminDashboard = () => {
         </div>
       </aside>
 
+      {/* Main Content */}
       <main className="dashboard-main">
-        {error && (
-          <div className="error-message">
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
+        <header className="main-header">
+          <div className="welcome-section">
+            <h1>Admin Dashboard</h1>
+            <p>Manage users, events, and system settings</p>
           </div>
-        )}
+          
+          <div className="header-actions">
+            <div className="user-profile">
+              <div className="profile-pic">
+                <i className="fas fa-user"></i>
+              </div>
+              <div className="user-info">
+                <span className="user-name">{userData?.fullName}</span>
+                <span className="user-role">Administrator</span>
+              </div>
+            </div>
+          </div>
+        </header>
 
-        {successMessage && (
-          <div className="success-message">
-            <i className="fas fa-check-circle"></i>
-            {successMessage}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
+        {successMessage && <div className="success-message">{successMessage}</div>}
 
         <div className="dashboard-grid">
           <div className="dashboard-card">
@@ -256,58 +282,161 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="pending-users">
-          <h2>Pending User Approvals</h2>
-          {pendingUsers.length === 0 ? (
-            <div className="no-pending">No pending users to approve</div>
-          ) : (
-            <div className="users-grid">
-              {pendingUsers.map(user => (
-                <div key={user._id} className="user-card">
-                  <div className="user-info">
-                    <h3>{user.fullName}</h3>
-                    <p className="email">{user.email}</p>
-                    <p className="details">Student ID: {user.studentId}</p>
-                    <p className="details">Course: {user.course}</p>
-                    <p className="details">Year Level: {user.yearLevel}</p>
-                    <p className="registration-date">
-                      Registered: {new Date(user.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="action-buttons">
-                    <div className="role-buttons">
-                      <button
-                        onClick={() => handleApproveUser(user._id, 'student')}
-                        className="approve-student"
-                      >
-                        Approve as Student
-                      </button>
-                      <button
-                        onClick={() => handleApproveUser(user._id, 'officer')}
-                        className="approve-officer"
-                      >
-                        Approve as Officer
-                      </button>
-                    </div>
-                    <div className="other-actions">
-                      <button
-                        onClick={() => handleArchiveUser(user._id)}
-                        className="archive"
-                      >
-                        Archive
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user._id)}
-                        className="delete"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+        <div className="recent-events">
+          <div className="section-header">
+            <div className="tab-buttons">
+              <button 
+                className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                onClick={() => setActiveTab('pending')}
+              >
+                Pending Users
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                All Users
+              </button>
             </div>
-          )}
+            <button 
+              className="view-all-btn" 
+              onClick={activeTab === 'pending' ? fetchPendingUsers : fetchAllUsers}
+            >
+              <i className="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
+
+          <div className="events-table">
+            {activeTab === 'pending' ? (
+              pendingUsers.length === 0 ? (
+                <div className="no-pending">No pending users at the moment.</div>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Registration Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingUsers.map(user => (
+                      <tr key={user._id}>
+                        <td>{user.fullName}</td>
+                        <td>{user.email}</td>
+                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td>
+                          <div className="action-buttons">
+                            <button
+                              onClick={() => handleUserAction(user._id, 'approve', 'student')}
+                              className="action-btn approve-student"
+                              title="Approve as Student"
+                            >
+                              <i className="fas fa-user-graduate"></i>
+                            </button>
+                            <button
+                              onClick={() => handleUserAction(user._id, 'approve', 'officer')}
+                              className="action-btn approve-officer"
+                              title="Approve as Officer"
+                            >
+                              <i className="fas fa-user-tie"></i>
+                            </button>
+                            <button
+                              onClick={() => handleUserAction(user._id, 'archive')}
+                              className="action-btn archive"
+                              title="Archive User"
+                            >
+                              <i className="fas fa-archive"></i>
+                            </button>
+                            <button
+                              onClick={() => handleUserAction(user._id, 'delete')}
+                              className="action-btn delete"
+                              title="Delete User"
+                            >
+                              <i className="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Registration Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsers.map(user => (
+                    <tr key={user._id}>
+                      <td>{user.fullName}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <span className={getRoleBadgeClass(user.role)}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={getStatusBadgeClass(user.status)}>
+                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        </span>
+                      </td>
+                      <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <div className="action-buttons">
+                          {user.role !== 'admin' && (
+                            <>
+                              {user.status !== 'active' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUserAction(user._id, 'approve', 'student')}
+                                    className="action-btn approve-student"
+                                    title="Approve as Student"
+                                  >
+                                    <i className="fas fa-user-graduate"></i>
+                                  </button>
+                                  <button
+                                    onClick={() => handleUserAction(user._id, 'approve', 'officer')}
+                                    className="action-btn approve-officer"
+                                    title="Approve as Officer"
+                                  >
+                                    <i className="fas fa-user-tie"></i>
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleUserAction(user._id, 'archive')}
+                                className="action-btn archive"
+                                title="Archive User"
+                              >
+                                <i className="fas fa-archive"></i>
+                              </button>
+                              <button
+                                onClick={() => handleUserAction(user._id, 'delete')}
+                                className="action-btn delete"
+                                title="Delete User"
+                              >
+                                <i className="fas fa-trash-alt"></i>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </main>
     </div>

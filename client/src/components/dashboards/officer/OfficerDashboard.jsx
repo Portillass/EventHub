@@ -132,7 +132,7 @@ const OfficerDashboard = () => {
       <main className="dashboard-main">
         <header className="main-header">
           <div className="welcome-section">
-            <h1>Welcome back, {userData.name}!</h1>
+            <h1>Welcome back Officer, {userData.name}!</h1>
             <p>Manage your organization's events and members.</p>
           </div>
           

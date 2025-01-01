@@ -66,7 +66,7 @@ router.get('/google/callback',
             return res.redirect(`${process.env.CLIENT_URL}/dashboard`);
           } else if (user.role === 'officer') {
             return res.redirect(`${process.env.CLIENT_URL}/officer`);
-          } else {
+  } else {
             return res.redirect(`${process.env.CLIENT_URL}/student`);
           }
         });
@@ -88,8 +88,8 @@ router.get('/current-user', (req, res) => {
         isAuthenticated: false,
         user: null
       });
-    }
-  } catch (error) {
+  }
+} catch (error) {
     console.error('Error getting current user:', error);
     res.status(500).json({
       isAuthenticated: false,
@@ -171,60 +171,79 @@ router.post('/login', verifyRecaptcha, async (req, res) => {
 // Signup route with reCAPTCHA verification
 router.post('/signup', verifyRecaptcha, async (req, res) => {
   try {
-    const { fullName, email, password, studentId, course, yearLevel } = req.body;
+    const { fullName, email, password } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { studentId }] 
-    });
-
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ 
-        message: 'User with this email or student ID already exists' 
+        message: 'Email already registered' 
       });
     }
 
-    // Create new user
+    // Check if it's the admin email
+    const isAdmin = email === process.env.ADMIN_EMAIL;
+
+    // Create new user with appropriate status and role
     const user = new User({
       fullName,
       email,
       password,
-      studentId,
-      course,
-      yearLevel,
-      status: 'pending'
+      status: isAdmin ? 'active' : 'pending',
+      role: isAdmin ? 'admin' : 'student'
     });
 
     await user.save();
 
-    // Send email to admin
-    const adminMailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL,
-      subject: 'New User Registration - EventHub',
-      html: `
-        <h1>New User Registration</h1>
-        <p>A new user has registered and is pending approval:</p>
-        <ul>
-          <li>Name: ${fullName}</li>
-          <li>Email: ${email}</li>
-          <li>Student ID: ${studentId}</li>
-          <li>Course: ${course}</li>
-          <li>Year Level: ${yearLevel}</li>
-        </ul>
-        <p>Please log in to the admin dashboard to review this registration.</p>
-      `
-    };
+    // If it's not admin, send notification emails
+    if (!isAdmin) {
+      // Send email to admin
+      const adminMailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.ADMIN_EMAIL,
+        subject: 'New User Registration - EventHub',
+        html: `
+          <h1>New User Registration</h1>
+          <p>A new user has registered and is pending approval:</p>
+          <ul>
+            <li>Name: ${fullName}</li>
+            <li>Email: ${email}</li>
+          </ul>
+          <p>Please log in to the admin dashboard to review this registration.</p>
+        `
+      };
 
-    await transporter.sendMail(adminMailOptions);
+      await transporter.sendMail(adminMailOptions);
 
+      // Send confirmation email to user
+      const userMailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Welcome to EventHub - Registration Received',
+        html: `
+          <h1>Welcome to EventHub!</h1>
+          <p>Dear ${fullName},</p>
+          <p>Your registration has been received and is pending admin approval.</p>
+          <p>You will receive another email once your account has been reviewed.</p>
+          <p>Thank you for your patience!</p>
+        `
+      };
+
+      await transporter.sendMail(userMailOptions);
+
+      return res.status(201).json({ 
+        message: 'Registration successful. Please wait for admin approval.' 
+      });
+    }
+
+    // For admin account
     res.status(201).json({ 
-      message: 'Signup successful. Please wait for admin approval.' 
+      message: 'Admin account created successfully. You can now log in.' 
     });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ 
-      message: 'Signup failed', 
+      message: 'Registration failed', 
       error: error.message 
     });
   }

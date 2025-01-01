@@ -19,18 +19,27 @@ const PendingUsers = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="pending-status">
+    <div className="pending-container">
       <div className="pending-content">
-        <h1>Account Pending Approval</h1>
-        <div className="status-message">
+        <h1>Account Under Review</h1>
+        <div className="pending-message">
           <p>Your account is currently pending approval from the administrator.</p>
-          <p>You will receive an email notification once your account has been approved.</p>
-          <p>Please check your email regularly for updates.</p>
+          <p>Once approved, you will be able to access your dashboard.</p>
+          <p>Please check back later or contact support if you have any questions.</p>
         </div>
-        <button onClick={handleLogout} className="logout-btn">
-          Logout
-        </button>
+        <div className="button-group">
+          <button onClick={handleBack} className="back-button">
+            Back to Landing Page
+          </button>
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );

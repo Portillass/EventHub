@@ -21,6 +21,16 @@ const isAdmin = (req, res, next) => {
   }
 };
 
+// Get all users
+router.get('/all', isAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch users', error: error.message });
+  }
+});
+
 // Get all pending users
 router.get('/pending', isAdmin, async (req, res) => {
   try {
