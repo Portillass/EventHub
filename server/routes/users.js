@@ -21,8 +21,17 @@ const isAdmin = (req, res, next) => {
   }
 };
 
+// Middleware to check if user is admin or officer
+const isAdminOrOfficer = (req, res, next) => {
+  if (req.session?.user?.role === 'admin' || req.session?.user?.role === 'officer') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied' });
+  }
+};
+
 // Get all users
-router.get('/all', isAdmin, async (req, res) => {
+router.get('/all', isAdminOrOfficer, async (req, res) => {
   try {
     const users = await User.find({}, { password: 0 }).sort({ createdAt: -1 });
     res.json(users);
@@ -32,7 +41,7 @@ router.get('/all', isAdmin, async (req, res) => {
 });
 
 // Get all pending users
-router.get('/pending', isAdmin, async (req, res) => {
+router.get('/pending', isAdminOrOfficer, async (req, res) => {
   try {
     const pendingUsers = await User.find({ status: 'pending' });
     res.json(pendingUsers);
@@ -42,7 +51,7 @@ router.get('/pending', isAdmin, async (req, res) => {
 });
 
 // Get user statistics
-router.get('/stats', isAdmin, async (req, res) => {
+router.get('/stats', isAdminOrOfficer, async (req, res) => {
   try {
     const stats = {
       totalPending: await User.countDocuments({ status: 'pending' }),
@@ -56,10 +65,15 @@ router.get('/stats', isAdmin, async (req, res) => {
 });
 
 // Approve user
-router.post('/:userId/approve', isAdmin, async (req, res) => {
+router.post('/:userId/approve', isAdminOrOfficer, async (req, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
+
+    // Only admin can approve officers
+    if (role === 'officer' && req.session.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can approve officers' });
+    }
 
     const user = await User.findByIdAndUpdate(
       userId,
@@ -96,18 +110,26 @@ router.post('/:userId/approve', isAdmin, async (req, res) => {
 });
 
 // Archive user
-router.post('/:userId/archive', isAdmin, async (req, res) => {
+router.post('/:userId/archive', isAdminOrOfficer, async (req, res) => {
   try {
     const { userId } = req.params;
+    
+    // Check if target user is admin or officer
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only admin can archive officers
+    if (targetUser.role === 'officer' && req.session.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can archive officers' });
+    }
+
     const user = await User.findByIdAndUpdate(
       userId,
       { status: 'archived' },
       { new: true }
     );
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
     res.json({ message: 'User archived successfully', user });
   } catch (error) {
@@ -116,15 +138,22 @@ router.post('/:userId/archive', isAdmin, async (req, res) => {
 });
 
 // Delete user
-router.post('/:userId/delete', isAdmin, async (req, res) => {
+router.post('/:userId/delete', isAdminOrOfficer, async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findByIdAndDelete(userId);
 
-    if (!user) {
+    // Check if target user is admin or officer
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Only admin can delete officers
+    if (targetUser.role === 'officer' && req.session.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can delete officers' });
+    }
+
+    const user = await User.findByIdAndDelete(userId);
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete user', error: error.message });
