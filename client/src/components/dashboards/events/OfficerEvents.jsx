@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSearch, FaQrcode, FaUserCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
 import '../../../styles/OfficerEventModal.css';
@@ -14,6 +14,7 @@ export default function OfficerEvents() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('events'); // 'events' or 'attendance'
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -121,6 +122,11 @@ export default function OfficerEvents() {
     setShowModal(true);
   };
 
+  const handleGenerateQR = (eventId) => {
+    // TODO: Implement QR code generation
+    console.log('Generate QR for event:', eventId);
+  };
+
   const filteredEvents = events.filter(event => {
     const matchesSearch = 
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,6 +188,21 @@ export default function OfficerEvents() {
         </div>
       </div>
 
+      <div className="events-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
+          onClick={() => setActiveTab('events')}
+        >
+          <FaEdit /> Manage Events
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'attendance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('attendance')}
+        >
+          <FaUserCheck /> Attendance Track
+        </button>
+      </div>
+
       <div className="events-table-container">
         {loading ? (
           <div className="loading-message">Loading events...</div>
@@ -217,6 +238,13 @@ export default function OfficerEvents() {
                         title="Edit"
                       >
                         <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => handleGenerateQR(event._id)}
+                        className="action-btn qr"
+                        title="Generate QR Code"
+                      >
+                        <FaQrcode />
                       </button>
                       <button
                         onClick={() => handleDelete(event._id)}

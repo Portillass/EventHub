@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { FaSearch, FaCalendarAlt, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
+import { FaSearch, FaCalendarAlt, FaMapMarkerAlt, FaClock, FaUserCheck, FaComments } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
 
@@ -10,6 +10,7 @@ export default function StudentEvents() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' or 'attendance'
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,12 +76,129 @@ export default function StudentEvents() {
     return matchesSearch;
   });
 
+  const renderUpcomingEvents = () => (
+    <table className="events-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Description</th>
+          <th>
+            <div className="table-header-cell">
+              <FaClock className="header-icon" />
+              Date & Time
+            </div>
+          </th>
+          <th>
+            <div className="table-header-cell">
+              <FaMapMarkerAlt className="header-icon" />
+              Location
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredEvents.map((event) => (
+          <tr key={event._id} className="event-row">
+            <td>
+              <div className="event-title">{event.title}</div>
+            </td>
+            <td>
+              <div className="event-description">{event.description}</div>
+            </td>
+            <td>
+              <div className="event-date">
+                {format(new Date(event.date), 'MMM dd, yyyy')}
+              </div>
+            </td>
+            <td>
+              <div className="event-location">
+                {event.location}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderAttendanceEvents = () => (
+    <table className="events-table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>
+            <div className="table-header-cell">
+              <FaUserCheck className="header-icon" />
+              Attendance
+            </div>
+          </th>
+          <th>
+            <div className="table-header-cell">
+              <FaComments className="header-icon" />
+              Feedback
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {filteredEvents.map((event) => (
+          <tr key={event._id} className="event-row">
+            <td>
+              <div className="event-title">{event.title}</div>
+            </td>
+            <td>
+              <div className="action-buttons">
+                <button 
+                  className="action-btn attendance"
+                  onClick={() => handleAttendance(event._id)}
+                  title="Mark Attendance"
+                >
+                  <FaUserCheck />
+                </button>
+              </div>
+            </td>
+            <td>
+              <div className="action-buttons">
+                <button 
+                  className="action-btn feedback"
+                  onClick={() => handleFeedback(event._id)}
+                  title="Give Feedback"
+                >
+                  <FaComments />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const handleAttendance = (eventId) => {
+    // TODO: Implement attendance marking
+    console.log('Mark attendance for event:', eventId);
+  };
+
+  const handleFeedback = (eventId) => {
+    // TODO: Implement feedback submission
+    console.log('Submit feedback for event:', eventId);
+  };
+
   return (
     <div className="events-container student-view">
       <div className="events-header">
         <h2>
-          <FaCalendarAlt className="header-icon" />
-          Your Upcoming Events
+          {activeTab === 'upcoming' ? (
+            <>
+              <FaCalendarAlt className="header-icon" />
+              Your Upcoming Events
+            </>
+          ) : (
+            <>
+              <FaUserCheck className="header-icon" />
+              Attendance Event
+            </>
+          )}
         </h2>
         <div className="header-actions">
           <div className="filter-section student-filters">
@@ -88,13 +206,28 @@ export default function StudentEvents() {
               <FaSearch />
               <input
                 type="text"
-                placeholder="Search events..."
+                placeholder={`Search events...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="events-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'upcoming' ? 'active' : ''}`}
+          onClick={() => setActiveTab('upcoming')}
+        >
+          <FaCalendarAlt /> Upcoming Events
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'attendance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('attendance')}
+        >
+          <FaUserCheck /> Attendance Event
+        </button>
       </div>
 
       <div className="events-table-container">
@@ -113,54 +246,7 @@ export default function StudentEvents() {
               Showing {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}
             </div>
             <div className="events-section">
-              <table className="events-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>
-                      <div className="table-header-cell">
-                        <FaClock className="header-icon" />
-                        Date & Time
-                      </div>
-                    </th>
-                    <th>
-                      <div className="table-header-cell">
-                        <FaMapMarkerAlt className="header-icon" />
-                        Location
-                      </div>
-                    </th>
-                    <th>Organizer</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEvents.map((event) => (
-                    <tr key={event._id} className="event-row">
-                      <td>
-                        <div className="event-title">{event.title}</div>
-                      </td>
-                      <td>
-                        <div className="event-description">{event.description}</div>
-                      </td>
-                      <td>
-                        <div className="event-date">
-                          {format(new Date(event.date), 'MMM dd, yyyy')}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="event-location">
-                          {event.location}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="event-organizer">
-                          {event.createdBy?.firstName} {event.createdBy?.lastName}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {activeTab === 'upcoming' ? renderUpcomingEvents() : renderAttendanceEvents()}
             </div>
           </>
         )}

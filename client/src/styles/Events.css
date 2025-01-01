@@ -158,6 +158,7 @@
 .action-buttons {
   display: flex;
   gap: 0.5rem;
+  justify-content: center;
 }
 
 .action-btn {
@@ -169,8 +170,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  width: 40px;
+  height: 40px;
+}
+
+.action-btn svg {
+  font-size: 1.2rem;
 }
 
 .action-btn.edit {
@@ -180,6 +185,17 @@
 
 .action-btn.edit:hover {
   background: rgba(255, 215, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.action-btn.qr {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.action-btn.qr:hover {
+  background: rgba(52, 152, 219, 0.3);
+  transform: translateY(-1px);
 }
 
 .action-btn.delete {
@@ -189,6 +205,7 @@
 
 .action-btn.delete:hover {
   background: rgba(255, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 .status-badge {
@@ -278,4 +295,276 @@
   color: #FFD700;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Event Tabs */
+.events-tabs {
+  display: flex;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.tab-btn svg {
+  font-size: 1.1rem;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+}
+
+.tab-btn.active {
+  background: #FFD700;
+  color: #000;
+}
+
+/* QR Code Button */
+.event-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.qr-btn {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+}
+
+.qr-btn:hover {
+  background: rgba(255, 215, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.qr-btn svg {
+  font-size: 1.2rem;
+}
+
+/* Attendance Records Styles */
+.event-time {
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.status-badge.present {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.status-badge.absent {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+}
+
+.status-badge.late {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+}
+
+/* Student View Specific Styles */
+.student-view .events-table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.student-view .event-title {
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.student-view .event-description {
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-view .event-date,
+.student-view .event-location,
+.student-view .event-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.student-view .events-count {
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Event Subtabs */
+.event-subtabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.subtab-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subtab-btn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  color: #FFD700;
+}
+
+.subtab-btn.active {
+  background: #FFD700;
+  color: #000;
+}
+
+/* Action Buttons */
+.action-btn.attendance {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+}
+
+.action-btn.attendance:hover {
+  background: rgba(46, 204, 113, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.15);
+}
+
+.action-btn.feedback {
+  background: rgba(52, 152, 219, 0.2);
+  color: #3498db;
+}
+
+.action-btn.feedback:hover {
+  background: rgba(52, 152, 219, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+}
+
+.event-feedback {
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+.event-icon-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.event-icon-status .action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.event-icon-status .action-btn svg {
+  font-size: 1.1rem;
+}
+
+.event-icon-status .action-btn.attendance {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ecc71;
+}
+
+.event-icon-status .action-btn.attendance:hover {
+  background: rgba(46, 204, 113, 0.2);
+  transform: translateY(-2px);
+}
+
+.event-icon-status .action-btn.feedback {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+}
+
+.event-icon-status .action-btn.feedback:hover {
+  background: rgba(52, 152, 219, 0.2);
+  transform: translateY(-2px);
+}
+
+.event-action-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.event-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-width: 130px;
+}
+
+.event-action-btn .action-icon {
+  font-size: 1.2rem;
+}
+
+.event-action-btn.attendance {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.event-action-btn.attendance:hover {
+  background: rgba(46, 204, 113, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.15);
+}
+
+.event-action-btn.feedback {
+  background: rgba(52, 152, 219, 0.1);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.event-action-btn.feedback:hover {
+  background: rgba(52, 152, 219, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
 } 
