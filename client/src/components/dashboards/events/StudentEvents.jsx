@@ -118,30 +118,44 @@ export default function StudentEvents() {
                   <tr>
                     <th>Title</th>
                     <th>Description</th>
-                    <th>Date & Time</th>
-                    <th>Location</th>
+                    <th>
+                      <div className="table-header-cell">
+                        <FaClock className="header-icon" />
+                        Date & Time
+                      </div>
+                    </th>
+                    <th>
+                      <div className="table-header-cell">
+                        <FaMapMarkerAlt className="header-icon" />
+                        Location
+                      </div>
+                    </th>
                     <th>Organizer</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEvents.map((event) => (
                     <tr key={event._id} className="event-row">
-                      <td className="event-title">
-                        {event.title}
+                      <td>
+                        <div className="event-title">{event.title}</div>
                       </td>
-                      <td className="event-description">
-                        {event.description}
+                      <td>
+                        <div className="event-description">{event.description}</div>
                       </td>
-                      <td className="event-date">
-                        <FaClock className="icon" />
-                        {format(new Date(event.date), 'MMM dd, yyyy')}
+                      <td>
+                        <div className="event-date">
+                          {format(new Date(event.date), 'MMM dd, yyyy')}
+                        </div>
                       </td>
-                      <td className="event-location">
-                        <FaMapMarkerAlt className="icon" />
-                        {event.location}
+                      <td>
+                        <div className="event-location">
+                          {event.location}
+                        </div>
                       </td>
-                      <td className="event-organizer">
-                        {event.createdBy?.firstName} {event.createdBy?.lastName}
+                      <td>
+                        <div className="event-organizer">
+                          {event.createdBy?.firstName} {event.createdBy?.lastName}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -1,0 +1,178 @@
+.student-table-container {
+  margin-top: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.student-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.student-table th {
+  background: rgba(0, 0, 0, 0.4);
+  color: #FFD700;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(255, 215, 0, 0.2);
+}
+
+.student-table td {
+  padding: 1rem 1.5rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+}
+
+.student-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.student-table tbody tr:hover {
+  background: rgba(255, 215, 0, 0.05);
+}
+
+/* Student Info Styles */
+.student-name {
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.student-email {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.student-id {
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.student-course {
+  color: #FFD700;
+  font-weight: 500;
+}
+
+.student-year {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+/* Action Buttons */
+.student-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.student-action-btn {
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.student-action-btn.edit {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+}
+
+.student-action-btn.edit:hover {
+  background: rgba(255, 215, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.student-action-btn.delete {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff4444;
+}
+
+.student-action-btn.delete:hover {
+  background: rgba(255, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Status Badge */
+.student-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.student-status.active {
+  background: rgba(0, 255, 0, 0.2);
+  color: #00ff00;
+}
+
+.student-status.inactive {
+  background: rgba(255, 0, 0, 0.2);
+  color: #ff4444;
+}
+
+.student-status.pending {
+  background: rgba(255, 215, 0, 0.2);
+  color: #FFD700;
+}
+
+/* Empty State */
+.no-students {
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .student-table th,
+  .student-table td {
+    padding: 0.75rem 1rem;
+  }
+
+  .student-email {
+    display: block;
+    margin-top: 0.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-table-container {
+    border-radius: 8px;
+    margin: 1rem -1rem;
+  }
+
+  .student-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .student-actions {
+    white-space: nowrap;
+  }
+} 

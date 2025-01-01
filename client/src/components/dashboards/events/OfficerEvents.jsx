@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { FaEdit, FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSearch, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
+import '../../../styles/OfficerEventModal.css';
 
 export default function OfficerEvents() {
   const [events, setEvents] = useState([]);
@@ -248,6 +249,16 @@ export default function OfficerEvents() {
               <h2 className="modal-title">
                 {selectedEvent ? 'Edit Event' : 'Create New Event'}
               </h2>
+              <button
+                className="event-close-btn"
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedEvent(null);
+                  setFormData({ title: '', description: '', date: '', location: '' });
+                }}
+              >
+                <FaTimes />
+              </button>
             </div>
             {error && (
               <div className="error-message">
@@ -262,6 +273,7 @@ export default function OfficerEvents() {
                   className="form-input"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter event title"
                   required
                 />
               </div>
@@ -271,6 +283,7 @@ export default function OfficerEvents() {
                   className="form-input"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Enter event description"
                   rows="3"
                   required
                 />
@@ -292,6 +305,7 @@ export default function OfficerEvents() {
                   className="form-input"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Enter event location"
                   required
                 />
               </div>

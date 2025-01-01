@@ -1,0 +1,275 @@
+/* Event Modal Styles */
+.event-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 1.5rem;
+}
+
+.event-modal {
+  background: white;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Modal Header */
+.event-modal-header {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  padding: 2rem;
+  position: relative;
+  text-align: center;
+}
+
+.event-modal-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.event-modal-subtitle {
+  opacity: 0.9;
+  font-size: 1.1rem;
+}
+
+/* Close Button */
+.event-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.event-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Form Styles */
+.event-form {
+  padding: 2rem;
+}
+
+.event-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.event-input-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.event-input-icon svg {
+  position: absolute;
+  left: 1rem;
+  color: #64748b;
+  font-size: 1.25rem;
+  transition: color 0.2s;
+}
+
+.event-input,
+.event-textarea {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #f8fafc;
+}
+
+.event-textarea {
+  padding: 1rem;
+  min-height: 150px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.event-input:hover,
+.event-textarea:hover {
+  border-color: #cbd5e1;
+  background: white;
+}
+
+.event-input:focus,
+.event-textarea:focus {
+  border-color: #3498db;
+  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15);
+  outline: none;
+  background: white;
+}
+
+.event-input:focus + svg,
+.event-textarea:focus + svg {
+  color: #3498db;
+}
+
+/* Date and Location Grid */
+.event-date-location {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Submit Button */
+.event-submit-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.event-submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.event-submit-btn:hover::before {
+  left: 100%;
+}
+
+.event-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(52, 152, 219, 0.25);
+}
+
+.event-submit-btn:active {
+  transform: translateY(0);
+}
+
+.event-submit-btn.loading {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.event-submit-btn.loading::after {
+  content: '';
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  margin-top: -8px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-left-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Input Placeholders */
+.event-input::placeholder,
+.event-textarea::placeholder {
+  color: #94a3b8;
+  opacity: 0.8;
+}
+
+/* Date Input Styling */
+input[type="date"].event-input {
+  color: #1e293b;
+  cursor: pointer;
+}
+
+input[type="date"].event-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+  margin-right: 0.5rem;
+}
+
+input[type="date"].event-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .event-modal-overlay {
+    padding: 1rem;
+  }
+
+  .event-modal {
+    border-radius: 12px;
+  }
+
+  .event-modal-header {
+    padding: 1.5rem;
+  }
+
+  .event-modal-title {
+    font-size: 1.5rem;
+  }
+
+  .event-form {
+    padding: 1.5rem;
+  }
+
+  .event-date-location {
+    grid-template-columns: 1fr;
+  }
+
+  .event-input,
+  .event-textarea {
+    font-size: 16px; /* Prevents zoom on mobile */
+  }
+} 

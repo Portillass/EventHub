@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/Users.css';
+import '../../styles/StudentTable.css';
 
 const Users = () => {
   const navigate = useNavigate();
@@ -81,8 +82,8 @@ const Users = () => {
         </div>
       </div>
 
-      <div className="users-table-container">
-        <table className="users-table">
+      <div className="student-table-container">
+        <table className="student-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -95,44 +96,48 @@ const Users = () => {
           <tbody>
             {filteredUsers.map(user => (
               <tr key={user._id}>
-                <td>{user.firstName} {user.lastName}</td>
-                <td>{user.email}</td>
                 <td>
-                  <span className={`role-badge ${user.role}`}>
+                  <span className="student-name">{user.firstName} {user.lastName}</span>
+                </td>
+                <td>
+                  <span className="student-email">{user.email}</span>
+                </td>
+                <td>
+                  <span className="student-year">
                     {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                   </span>
                 </td>
                 <td>
-                  <span className={`status-badge ${user.status}`}>
+                  <span className={`student-status ${user.status}`}>
                     {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
                   </span>
                 </td>
                 <td>
                   {user.status === 'pending' && (
-                    <div className="action-buttons">
+                    <div className="student-actions">
                       <button
-                        className="action-btn approve-student"
+                        className="student-action-btn edit"
                         onClick={() => handleApproveUser(user._id)}
                         title="Approve as Student"
                       >
                         <i className="fas fa-user-graduate"></i>
                       </button>
                       <button
-                        className="action-btn approve-officer"
+                        className="student-action-btn edit"
                         onClick={() => handleApproveAsOfficer(user._id)}
                         title="Approve as Officer"
                       >
                         <i className="fas fa-user-tie"></i>
                       </button>
                       <button
-                        className="action-btn archive"
+                        className="student-action-btn delete"
                         onClick={() => handleArchiveUser(user._id)}
                         title="Archive User"
                       >
                         <i className="fas fa-archive"></i>
                       </button>
                       <button
-                        className="action-btn delete"
+                        className="student-action-btn delete"
                         onClick={() => handleDeleteUser(user._id)}
                         title="Delete User"
                       >
