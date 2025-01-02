@@ -288,12 +288,57 @@ const AdminDashboard = () => {
           <div className="attendance-records">
             <div className="section-header">
               <h2>Attendance Records</h2>
-              <button 
-                className="view-all-btn" 
-                onClick={fetchAttendanceRecords}
-              >
-                <i className="fas fa-sync-alt"></i> Refresh
-              </button>
+              <div className="header-buttons">
+                <button 
+                  className="view-all-btn" 
+                  onClick={fetchAttendanceRecords}
+                >
+                  <i className="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button 
+                  className="download-btn"
+                  onClick={async () => {
+                    try {
+                      // Build query string with current filters
+                      const queryParams = new URLSearchParams({
+                        titleFilter,
+                        yearLevelFilter,
+                        courseFilter
+                      }).toString();
+
+                      const response = await fetch(`http://localhost:2025/api/attendance/download-excel?${queryParams}`, {
+                        credentials: 'include'
+                      });
+                      
+                      if (!response.ok) {
+                        throw new Error('Failed to download Excel file');
+                      }
+                      
+                      // Create blob from response
+                      const blob = await response.blob();
+                      
+                      // Create download link
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'attendance_records.xlsx';
+                      
+                      // Trigger download
+                      document.body.appendChild(a);
+                      a.click();
+                      
+                      // Cleanup
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error('Error downloading Excel:', error);
+                      setError('Failed to download Excel file. Please try again.');
+                    }
+                  }}
+                >
+                  <i className="fas fa-file-excel"></i> Download Excel
+                </button>
+              </div>
             </div>
 
             <div className="filter-controls">

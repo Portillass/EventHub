@@ -1514,3 +1514,44 @@ select.form-control option {
   color: #4CAF50;
   border: 1px solid rgba(76, 175, 80, 0.2);
 }
+
+/* Header Buttons */
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.view-all-btn,
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.view-all-btn {
+  background-color: #2196F3;
+}
+
+.view-all-btn:hover {
+  background-color: #1976D2;
+}
+
+.download-btn {
+  background-color: #28a745;
+}
+
+.download-btn:hover {
+  background-color: #218838;
+}
+
+.download-btn i,
+.view-all-btn i {
+  font-size: 16px;
+}

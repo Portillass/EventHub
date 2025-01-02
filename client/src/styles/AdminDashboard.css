@@ -258,3 +258,30 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 215, 0, 0.5);
 }
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #218838;
+}
+
+.download-btn i {
+  font-size: 16px;
+}
