@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { FaEdit, FaTrash, FaCheck, FaArchive, FaSearch } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaCheck, FaArchive, FaSearch, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
+import '../../../styles/OfficerEventModal.css';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -11,6 +12,9 @@ export default function AdminEvents() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [selectedAction, setSelectedAction] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,10 +65,19 @@ export default function AdminEvents() {
       
       // Refresh events list after status change
       await fetchEvents();
+      setShowConfirmModal(false);
+      setSelectedEventId(null);
+      setSelectedAction(null);
     } catch (error) {
       console.error('Error updating event status:', error);
       setError('Failed to update event status. Please try again.');
     }
+  };
+
+  const initiateStatusChange = (eventId, newStatus) => {
+    setSelectedEventId(eventId);
+    setSelectedAction(newStatus);
+    setShowConfirmModal(true);
   };
 
   const handleDelete = async (eventId) => {
@@ -165,7 +178,7 @@ export default function AdminEvents() {
                     <div className="action-buttons">
                       {event.status === 'pending' && (
                         <button
-                          onClick={() => handleStatusChange(event._id, 'approved')}
+                          onClick={() => initiateStatusChange(event._id, 'approved')}
                           className="action-btn approve"
                           title="Approve"
                         >
@@ -174,7 +187,7 @@ export default function AdminEvents() {
                       )}
                       {event.status === 'approved' && (
                         <button
-                          onClick={() => handleStatusChange(event._id, 'archived')}
+                          onClick={() => initiateStatusChange(event._id, 'archived')}
                           className="action-btn archive"
                           title="Archive"
                         >
@@ -204,6 +217,49 @@ export default function AdminEvents() {
           </div>
         )}
       </div>
+
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Confirm Action</h2>
+              <button
+                className="event-close-btn"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedEventId(null);
+                  setSelectedAction(null);
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '2rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: '#fff' }}>
+                Are you sure you want to {selectedAction === 'approved' ? 'approve' : 'archive'} this event?
+              </p>
+              <div className="modal-footer" style={{ justifyContent: 'center', gap: '1rem' }}>
+                <button
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setSelectedEventId(null);
+                    setSelectedAction(null);
+                  }}
+                  className="modal-btn cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleStatusChange(selectedEventId, selectedAction)}
+                  className="modal-btn submit"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

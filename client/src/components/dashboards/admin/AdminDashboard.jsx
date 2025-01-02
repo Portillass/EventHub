@@ -18,6 +18,7 @@ const AdminDashboard = () => {
   });
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
   const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events'
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -131,14 +132,24 @@ const AdminDashboard = () => {
     try {
       const response = await fetch('http://localhost:2025/api/auth/logout', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.ok) {
-        navigate('/');
+        // Clear any local storage or state if needed
+        localStorage.clear();
+        // Force navigation to home page
+        window.location.href = '/';
+      } else {
+        throw new Error('Logout failed');
       }
     } catch (error) {
       console.error('Logout failed:', error);
+      // Force navigation to home page even if there's an error
+      window.location.href = '/';
     }
   };
 
@@ -390,7 +401,7 @@ const AdminDashboard = () => {
       {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-header">
-          <i className="fas fa-shield-alt brand-logo"></i>
+          <i className="fas fa-home brand-logo"></i>
           <h1 className="brand-name">EventHub</h1>
         </div>
         
@@ -431,37 +442,47 @@ const AdminDashboard = () => {
             <i className="fas fa-calendar-alt"></i>
             Events
           </a>
-          <a href="#settings" className="nav-link">
-            <i className="fas fa-cog"></i>
-            Settings
-          </a>
         </nav>
-
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
       <main className="dashboard-main">
         <header className="main-header">
           <div className="welcome-section">
-            <h1>Admin Dashboard</h1>
-            <p>Manage users, events, and system settings</p>
+            <h1>Welcome back Admin, {userData?.fullName}!</h1>
+            <p>Manage your organization's users and events.</p>
           </div>
           
           <div className="header-actions">
-            <div className="user-profile">
+            <div 
+              className="user-profile"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
               <div className="profile-pic">
                 <i className="fas fa-user"></i>
               </div>
               <div className="user-info">
                 <span className="user-name">{userData?.fullName}</span>
-                <span className="user-role">Administrator</span>
+                <span className="user-role">Admin</span>
               </div>
+              <i className="fas fa-chevron-down"></i>
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  <a href="#profile" className="dropdown-item">
+                    <i className="fas fa-user-circle"></i>
+                    Profile
+                  </a>
+                  <a href="#settings" className="dropdown-item">
+                    <i className="fas fa-cog"></i>
+                    Settings
+                  </a>
+                  <div className="dropdown-divider"></div>
+                  <button onClick={handleLogout} className="dropdown-item logout">
+                    <i className="fas fa-sign-out-alt"></i>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

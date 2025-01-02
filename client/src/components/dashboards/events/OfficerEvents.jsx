@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { FaEdit, FaTrash, FaPlus, FaSearch, FaQrcode, FaUserCheck } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaPlus, FaSearch, FaQrcode, FaUserCheck, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
 import '../../../styles/OfficerEventModal.css';
@@ -9,6 +9,7 @@ import '../../../styles/OfficerEventModal.css';
 export default function OfficerEvents() {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -90,6 +91,13 @@ export default function OfficerEvents() {
       setSelectedEvent(null);
       setFormData({ title: '', description: '', date: '', location: '' });
       await fetchEvents();
+      
+      // Show success modal
+      setShowSuccessModal(true);
+      // Auto-hide success modal after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 3000);
     } catch (error) {
       console.error('Error saving event:', error);
       setError(error.response?.data?.message || 'Failed to save event. Please try again.');
@@ -338,6 +346,20 @@ export default function OfficerEvents() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="success-modal">
+            <div className="success-content">
+              <div className="success-icon">
+                <i className="fas fa-check-circle"></i>
+              </div>
+              <h2>Congratulations!</h2>
+              <p>Your event has been {selectedEvent ? 'updated' : 'created'} successfully.</p>
+            </div>
           </div>
         </div>
       )}

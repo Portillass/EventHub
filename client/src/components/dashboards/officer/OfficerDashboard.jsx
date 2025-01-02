@@ -25,6 +25,7 @@ const OfficerDashboard = () => {
   const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -695,18 +696,8 @@ const OfficerDashboard = () => {
             <i className="fas fa-calendar-alt"></i>
             Events
           </a>
-          <a href="#settings" className="nav-link">
-            <i className="fas fa-cog"></i>
-            Settings
-          </a>
+ 
         </nav>
-
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -718,7 +709,10 @@ const OfficerDashboard = () => {
           </div>
           
           <div className="header-actions">
-            <div className="user-profile">
+            <div 
+              className="user-profile"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
               <div className="profile-pic">
                 <i className="fas fa-user"></i>
               </div>
@@ -726,6 +720,24 @@ const OfficerDashboard = () => {
                 <span className="user-name">{userData?.fullName}</span>
                 <span className="user-role">Officer</span>
               </div>
+              <i className="fas fa-chevron-down"></i>
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  <a href="#profile" className="dropdown-item">
+                    <i className="fas fa-user-circle"></i>
+                    Profile
+                  </a>
+                  <a href="#settings" className="dropdown-item">
+                    <i className="fas fa-cog"></i>
+                    Settings
+                  </a>
+                  <div className="dropdown-divider"></div>
+                  <button onClick={handleLogout} className="dropdown-item logout">
+                    <i className="fas fa-sign-out-alt"></i>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

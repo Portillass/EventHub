@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaCheck } from 'react-icons/fa';
 import StudentEvents from '../events/StudentEvents';
 import '../../../styles/Dashboard.css';
 
@@ -15,6 +16,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [attendanceId, setAttendanceId] = useState(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     studentId: '',
     fullName: '',
@@ -24,6 +26,9 @@ const StudentDashboard = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [attendanceType, setAttendanceType] = useState('in');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     checkAuth();
@@ -151,17 +156,26 @@ const StudentDashboard = () => {
     }
   };
 
-  const handleAttendanceSubmit = async () => {
-    if (attendanceType === 'in') {
-      // Validate all fields are filled
-      if (!formData.studentId || !formData.fullName || !formData.yearLevel || !formData.course || !selectedEvent) {
-        alert('Please fill in all fields and select an event');
+  const handleAttendanceSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      setAttendanceLoading(true);
+
+      if (!formData.studentId) {
+        setError('Please enter your Student ID');
         return;
       }
 
-      try {
-        setAttendanceLoading(true);
-        const response = await fetch('http://localhost:2025/api/attendance/checkin', {
+      if (attendanceType === 'in') {
+        // Validate all fields are filled
+        if (!formData.studentId || !formData.fullName || !formData.yearLevel || !formData.course || !selectedEvent) {
+          setError('Please fill in all fields and select an event');
+          return;
+        }
+
+        // Mark attendance in
+        const checkinResponse = await fetch('http://localhost:2025/api/attendance/checkin', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -177,40 +191,14 @@ const StudentDashboard = () => {
           })
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          alert('Attendance In marked successfully!');
-          // Reset form after successful submission
-          setFormData({
-            studentId: '',
-            fullName: '',
-            yearLevel: '',
-            course: ''
-          });
-          setSelectedEvent('');
-          setAttendanceType('in');
-          checkActiveAttendance(); // Refresh attendance status
-        } else {
-          const errorData = await response.json();
-          alert(errorData.message || 'Failed to mark attendance');
-        }
-      } catch (error) {
-        console.error('Error marking attendance:', error);
-        alert('Error marking attendance');
-      } finally {
-        setAttendanceLoading(false);
-      }
-    } else {
-      // Attendance Out
-      try {
-        setAttendanceLoading(true);
-        
-        if (!formData.studentId) {
-          alert('Please enter your Student ID');
-          return;
+        if (!checkinResponse.ok) {
+          const errorData = await checkinResponse.json();
+          throw new Error(errorData.message || 'Failed to mark attendance in');
         }
 
-        // First find the active attendance record
+        setSuccessMessage('Attendance In marked successfully!');
+      } else {
+        // First check if there's an active attendance record
         const response = await fetch(`http://localhost:2025/api/attendance/student/${formData.studentId}`, {
           method: 'GET',
           headers: {
@@ -225,10 +213,9 @@ const StudentDashboard = () => {
 
         const records = await response.json();
         const activeRecord = records.find(record => !record.timeOut);
-          
+
         if (!activeRecord) {
-          alert('No active attendance session found for this student ID');
-          return;
+          throw new Error('No active attendance session found for this student ID');
         }
 
         // Mark attendance out
@@ -248,25 +235,32 @@ const StudentDashboard = () => {
           throw new Error(errorData.message || 'Failed to mark attendance out');
         }
 
-        const data = await checkoutResponse.json();
-        alert('Attendance Out marked successfully!');
-        
-        // Reset form after successful submission
-        setFormData({
-          studentId: '',
-          fullName: '',
-          yearLevel: '',
-          course: ''
-        });
-        setSelectedEvent('');
-        setAttendanceType('in');
-        checkActiveAttendance(); // Refresh attendance status
-      } catch (error) {
-        console.error('Error marking attendance out:', error);
-        alert('Error marking attendance out: ' + error.message);
-      } finally {
-        setAttendanceLoading(false);
+        setSuccessMessage('Attendance Out marked successfully!');
       }
+
+      // Show success modal
+      setShowSuccessModal(true);
+      // Auto-hide success modal after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        setSuccessMessage('');
+      }, 3000);
+
+      // Clear form and refresh attendance status
+      setFormData({
+        studentId: '',
+        fullName: '',
+        yearLevel: '',
+        course: ''
+      });
+      setSelectedEvent('');
+      setAttendanceType('in');
+      checkActiveAttendance();
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message || 'Failed to process attendance. Please try again.');
+    } finally {
+      setAttendanceLoading(false);
     }
   };
 
@@ -457,7 +451,7 @@ const StudentDashboard = () => {
     <div className="dashboard">
       <aside className="dashboard-sidebar">
         <div className="sidebar-header">
-          <i className="fas fa-building brand-logo"></i>
+          <i className="fas fa-home brand-logo"></i>
           <h1 className="brand-name">EventHub</h1>
         </div>
         
@@ -495,43 +489,72 @@ const StudentDashboard = () => {
             <i className="fas fa-calendar-alt"></i>
             Events
           </a>
-          <a href="#profile" className="nav-link">
-            <i className="fas fa-user"></i>
-            Profile
-          </a>
-          <a href="#settings" className="nav-link">
-            <i className="fas fa-cog"></i>
-            Settings
-          </a>
         </nav>
-
-        <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <i className="fas fa-sign-out-alt"></i>
-            Logout
-          </button>
-        </div>
       </aside>
 
       <main className="dashboard-main">
         <header className="main-header">
           <div className="welcome-section">
-            <h1>Welcome back, {userData.firstName}!</h1>
-            <p>Stay updated with your registered events and activities.</p>
+            <h1>Welcome back, {userData?.fullName}!</h1>
+            <p>Track your attendance and manage your events.</p>
           </div>
           
           <div className="header-actions">
-            <div className="user-profile">
-              <i className="fas fa-user-circle profile-pic"></i>
-              <div className="user-info">
-                <span>{userData.firstName} {userData.lastName}</span>
+            <div 
+              className="user-profile"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
+              <div className="profile-pic">
+                <i className="fas fa-user"></i>
               </div>
+              <div className="user-info">
+                <span className="user-name">{userData?.fullName}</span>
+                <span className="user-role">Student</span>
+              </div>
+              <i className="fas fa-chevron-down"></i>
+              {showProfileMenu && (
+                <div className="profile-dropdown">
+                  <a href="#profile" className="dropdown-item">
+                    <i className="fas fa-user-circle"></i>
+                    Profile
+                  </a>
+                  <a href="#settings" className="dropdown-item">
+                    <i className="fas fa-cog"></i>
+                    Settings
+                  </a>
+                  <div className="dropdown-divider"></div>
+                  <button onClick={handleLogout} className="dropdown-item logout">
+                    <i className="fas fa-sign-out-alt"></i>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
         {renderMainContent()}
       </main>
+
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="success-modal">
+            <div className="success-content">
+              <div className="success-icon">
+                <FaCheck />
+              </div>
+              <h2>Congratulations!</h2>
+              <p>{successMessage}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
