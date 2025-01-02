@@ -8,6 +8,7 @@ const AdminDashboard = () => {
   const [userData, setUserData] = useState(null);
   const [pendingUsers, setPendingUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -16,16 +17,36 @@ const AdminDashboard = () => {
     totalStudents: 0,
     totalOfficers: 0
   });
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
-  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events'
+  const [activeTab, setActiveTab] = useState('pending');
+  const [activeSection, setActiveSection] = useState('dashboard');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [titleFilter, setTitleFilter] = useState('all');
+  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [courseFilter, setCourseFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     checkAuth();
     fetchPendingUsers();
     fetchAllUsers();
     fetchStats();
-  }, []);
+    if (activeSection === 'attendance') {
+      fetchAttendanceRecords();
+    }
+  }, [activeSection]);
+
+  // Add auto-refresh every 30 seconds for attendance records
+  useEffect(() => {
+    let interval;
+    if (activeSection === 'attendance') {
+      interval = setInterval(fetchAttendanceRecords, 30000); // 30 seconds
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [activeSection]);
 
   const checkAuth = async () => {
     try {
@@ -179,10 +200,226 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchAttendanceRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:2025/api/attendance/all', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceRecords(data);
+      } else {
+        throw new Error('Failed to fetch attendance records');
+      }
+    } catch (error) {
+      console.error('Error fetching attendance records:', error);
+      setError('Failed to fetch attendance records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Not recorded';
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      })
+    };
+  };
+
+  const calculateDuration = (timeIn, timeOut) => {
+    if (!timeIn || !timeOut) return 'In Progress';
+    const start = new Date(timeIn);
+    const end = new Date(timeOut);
+    const diff = end - start;
+    
+    // Calculate hours, minutes and seconds
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    // Format the duration string
+    let duration = '';
+    if (hours > 0) duration += `${hours}h `;
+    if (minutes > 0) duration += `${minutes}m `;
+    if (seconds > 0) duration += `${seconds}s`;
+    
+    return duration.trim() || '0s';
+  };
+
+  const getFilteredAttendanceRecords = () => {
+    return attendanceRecords.filter(record => {
+      const matchesTitle = titleFilter === 'all' || record.title === titleFilter;
+      const matchesYearLevel = yearLevelFilter === 'all' || record.yearLevel === yearLevelFilter;
+      const matchesCourse = courseFilter === 'all' || record.course === courseFilter;
+      const matchesSearch = !searchTerm || 
+        record.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.course.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      return matchesTitle && matchesYearLevel && matchesCourse && matchesSearch;
+    });
+  };
+
+  const getUniqueValues = (field) => {
+    const values = new Set(attendanceRecords.map(record => record[field]));
+    return Array.from(values).filter(Boolean);
+  };
+
   const renderMainContent = () => {
     switch (activeSection) {
       case 'events':
         return <AdminEvents userRole="admin" />;
+      case 'attendance':
+        return (
+          <div className="attendance-records">
+            <div className="section-header">
+              <h2>Attendance Records</h2>
+              <button 
+                className="view-all-btn" 
+                onClick={fetchAttendanceRecords}
+              >
+                <i className="fas fa-sync-alt"></i> Refresh
+              </button>
+            </div>
+
+            <div className="filter-controls">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Search by ID or Name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+              
+              <div className="filter-group">
+                <select
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('title').map(title => (
+                    <option key={title} value={title}>
+                      {title === 'all' ? 'All Events' : title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={yearLevelFilter}
+                  onChange={(e) => setYearLevelFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('yearLevel').map(year => (
+                    <option key={year} value={year}>
+                      {year === 'all' ? 'All Year Levels' : year}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={courseFilter}
+                  onChange={(e) => setCourseFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('course').map(course => (
+                    <option key={course} value={course}>
+                      {course === 'all' ? 'All Courses' : course}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="attendance-table">
+              {loading ? (
+                <div className="loading-spinner">Loading attendance records...</div>
+              ) : getFilteredAttendanceRecords().length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student ID</th>
+                      <th>Full Name</th>
+                      <th>Year Level</th>
+                      <th>Course</th>
+                      <th>Event</th>
+                      <th>Date & Time In</th>
+                      <th>Date & Time Out</th>
+                      <th>Duration</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getFilteredAttendanceRecords().map((record) => {
+                      const timeIn = formatDateTime(record.timeIn);
+                      const timeOut = formatDateTime(record.timeOut);
+                      const duration = calculateDuration(record.timeIn, record.timeOut);
+                      const status = record.timeOut ? 'Completed' : 'Ongoing';
+
+                      return (
+                        <tr key={record._id}>
+                          <td>{record.studentId}</td>
+                          <td>{record.fullName}</td>
+                          <td>{record.yearLevel}</td>
+                          <td>{record.course}</td>
+                          <td>{record.title || 'Daily Attendance'}</td>
+                          <td>
+                            <div className="datetime-display">
+                              <div className="date">{timeIn.date}</div>
+                              <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
+                            </div>
+                          </td>
+                          <td>
+                            {record.timeOut ? (
+                              <div className="datetime-display">
+                                <div className="date">{timeOut.date}</div>
+                                <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
+                              </div>
+                            ) : (
+                              <span style={{ color: '#FFC107' }}>Not checked out</span>
+                            )}
+                          </td>
+                          <td>
+                            <span style={{ 
+                              color: record.timeOut ? '#4CAF50' : '#FFC107',
+                              fontFamily: 'monospace'
+                            }}>
+                              {duration}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${status.toLowerCase()}`}>
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="no-records">
+                  No attendance records found
+                </div>
+              )}
+            </div>
+          </div>
+        );
       case 'users':
         return (
           <div className="user-management">
@@ -430,6 +667,17 @@ const AdminDashboard = () => {
             {stats.totalPending > 0 && (
               <span className="badge">{stats.totalPending}</span>
             )}
+          </a>
+          <a 
+            href="#attendance" 
+            className={`nav-link ${activeSection === 'attendance' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('attendance');
+            }}
+          >
+            <i className="fas fa-clock"></i>
+            Attendance
           </a>
           <a 
             href="#events" 
