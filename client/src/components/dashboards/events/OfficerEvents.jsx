@@ -14,7 +14,6 @@ export default function OfficerEvents() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('events'); // 'events' or 'attendance'
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -186,21 +185,6 @@ export default function OfficerEvents() {
             </select>
           </div>
         </div>
-      </div>
-
-      <div className="events-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-          onClick={() => setActiveTab('events')}
-        >
-          <FaEdit /> Manage Events
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'attendance' ? 'active' : ''}`}
-          onClick={() => setActiveTab('attendance')}
-        >
-          <FaUserCheck /> Attendance Track
-        </button>
       </div>
 
       <div className="events-table-container">

@@ -21,6 +21,10 @@ const OfficerDashboard = () => {
   });
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
   const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events'
+  const [titleFilter, setTitleFilter] = useState('all');
+  const [yearLevelFilter, setYearLevelFilter] = useState('all');
+  const [courseFilter, setCourseFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     checkAuth();
@@ -275,6 +279,23 @@ const OfficerDashboard = () => {
     };
   }, [activeSection]);
 
+  // Get unique values for filters
+  const getUniqueValues = (key) => {
+    return ['all', ...new Set(attendanceRecords.map(record => record[key]))].filter(Boolean);
+  };
+
+  // Filter attendance records
+  const filteredAttendanceRecords = attendanceRecords.filter(record => {
+    const matchesTitle = titleFilter === 'all' || record.title === titleFilter;
+    const matchesYearLevel = yearLevelFilter === 'all' || record.yearLevel === yearLevelFilter;
+    const matchesCourse = courseFilter === 'all' || record.course === courseFilter;
+    const matchesSearch = searchTerm === '' || 
+      record.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesTitle && matchesYearLevel && matchesCourse && matchesSearch;
+  });
+
   const renderMainContent = () => {
     switch (activeSection) {
       case 'events':
@@ -471,11 +492,6 @@ const OfficerDashboard = () => {
   };
 
   const renderAttendanceRecords = () => {
-    // Sort records by date (most recent first)
-    const sortedRecords = [...attendanceRecords].sort((a, b) => {
-      return new Date(b.timeIn) - new Date(a.timeIn);
-    });
-
     return (
       <div className="attendance-records">
         <div className="section-header">
@@ -488,20 +504,68 @@ const OfficerDashboard = () => {
           </button>
         </div>
 
-        {loading ? (
-          <div className="loading-spinner">Loading attendance records...</div>
-        ) : error ? (
-          <div className="error-message">{error}</div>
-        ) : (
-          <div className="attendance-table">
+        <div className="filter-controls">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Search by ID or Name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          
+          <div className="filter-group">
+            <select
+              value={titleFilter}
+              onChange={(e) => setTitleFilter(e.target.value)}
+              className="filter-select"
+            >
+              {getUniqueValues('title').map(title => (
+                <option key={title} value={title}>
+                  {title === 'all' ? 'All Events' : title}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={yearLevelFilter}
+              onChange={(e) => setYearLevelFilter(e.target.value)}
+              className="filter-select"
+            >
+              {getUniqueValues('yearLevel').map(year => (
+                <option key={year} value={year}>
+                  {year === 'all' ? 'All Year Levels' : year}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="filter-select"
+            >
+              {getUniqueValues('course').map(course => (
+                <option key={course} value={course}>
+                  {course === 'all' ? 'All Courses' : course}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="attendance-table">
+          {loading ? (
+            <div className="loading-spinner">Loading attendance records...</div>
+          ) : filteredAttendanceRecords.length > 0 ? (
             <table>
               <thead>
                 <tr>
-                  <th>Title</th>
                   <th>Student ID</th>
                   <th>Full Name</th>
                   <th>Year Level</th>
                   <th>Course</th>
+                  <th>Event</th>
                   <th>Date & Time In</th>
                   <th>Date & Time Out</th>
                   <th>Duration</th>
@@ -509,62 +573,59 @@ const OfficerDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {sortedRecords.length > 0 ? (
-                  sortedRecords.map(record => {
-                    const timeIn = formatDateTime(record.timeIn);
-                    const timeOut = formatDateTime(record.timeOut);
-                    const duration = calculateDuration(record.timeIn, record.timeOut);
+                {filteredAttendanceRecords.map((record) => {
+                  const timeIn = formatDateTime(record.timeIn);
+                  const timeOut = formatDateTime(record.timeOut);
+                  const duration = calculateDuration(record.timeIn, record.timeOut);
+                  const status = record.timeOut ? 'Completed' : 'Ongoing';
 
-                    return (
-                      <tr key={record._id}>
-                        <td>{record.title || 'Daily Attendance'}</td>
-                        <td>{record.studentId}</td>
-                        <td>{record.fullName}</td>
-                        <td>{record.yearLevel}</td>
-                        <td>{record.course}</td>
-                        <td>
+                  return (
+                    <tr key={record._id}>
+                      <td>{record.studentId}</td>
+                      <td>{record.fullName}</td>
+                      <td>{record.yearLevel}</td>
+                      <td>{record.course}</td>
+                      <td>{record.title || 'Daily Attendance'}</td>
+                      <td>
+                        <div className="datetime-display">
+                          <div className="date">{timeIn.date}</div>
+                          <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
+                        </div>
+                      </td>
+                      <td>
+                        {record.timeOut ? (
                           <div className="datetime-display">
-                            <div className="date">{timeIn.date}</div>
-                            <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
+                            <div className="date">{timeOut.date}</div>
+                            <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
                           </div>
-                        </td>
-                        <td>
-                          {record.timeOut ? (
-                            <div className="datetime-display">
-                              <div className="date">{timeOut.date}</div>
-                              <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
-                            </div>
-                          ) : (
-                            <span style={{ color: '#FFC107' }}>Not checked out</span>
-                          )}
-                        </td>
-                        <td>
-                          <span style={{ 
-                            color: record.timeOut ? '#4CAF50' : '#FFC107',
-                            fontFamily: 'monospace'
-                          }}>
-                            {duration}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-badge ${record.timeOut ? 'completed' : 'ongoing'}`}>
-                            {record.timeOut ? 'Completed' : 'Ongoing'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="9" className="no-records">
-                      No attendance records found
-                    </td>
-                  </tr>
-                )}
+                        ) : (
+                          <span style={{ color: '#FFC107' }}>Not checked out</span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ 
+                          color: record.timeOut ? '#4CAF50' : '#FFC107',
+                          fontFamily: 'monospace'
+                        }}>
+                          {duration}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${status.toLowerCase()}`}>
+                          {status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-        )}
+          ) : (
+            <div className="no-records">
+              No attendance records found
+            </div>
+          )}
+        </div>
       </div>
     );
   };
