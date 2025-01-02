@@ -8,6 +8,7 @@ const OfficerDashboard = () => {
   const [userData, setUserData] = useState(null);
   const [pendingUsers, setPendingUsers] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -26,7 +27,23 @@ const OfficerDashboard = () => {
     fetchPendingUsers();
     fetchAllUsers();
     fetchStats();
-  }, []);
+    if (activeSection === 'attendance') {
+      fetchAttendanceRecords();
+    }
+  }, [activeSection]);
+
+  // Add auto-refresh every 30 seconds for attendance records
+  useEffect(() => {
+    let interval;
+    if (activeSection === 'attendance') {
+      interval = setInterval(fetchAttendanceRecords, 30000); // 30 seconds
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [activeSection]);
 
   const checkAuth = async () => {
     try {
@@ -92,6 +109,27 @@ const OfficerDashboard = () => {
     }
   };
 
+  const fetchAttendanceRecords = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:2025/api/attendance/all', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAttendanceRecords(data);
+      } else {
+        throw new Error('Failed to fetch attendance records');
+      }
+    } catch (error) {
+      console.error('Error fetching attendance records:', error);
+      setError('Failed to fetch attendance records');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUserAction = async (userId, action, role = null) => {
     try {
       setError(null);
@@ -133,14 +171,24 @@ const OfficerDashboard = () => {
     try {
       const response = await fetch('http://localhost:2025/api/auth/logout', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.ok) {
-        navigate('/');
+        // Clear any local storage or state if needed
+        localStorage.clear();
+        // Force navigation to home page
+        window.location.href = '/';
+      } else {
+        throw new Error('Logout failed');
       }
     } catch (error) {
       console.error('Logout failed:', error);
+      // Force navigation to home page even if there's an error
+      window.location.href = '/';
     }
   };
 
@@ -169,6 +217,63 @@ const OfficerDashboard = () => {
         return 'role-badge';
     }
   };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Not recorded';
+    const date = new Date(dateString);
+    return {
+      date: date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      })
+    };
+  };
+
+  const calculateDuration = (timeIn, timeOut) => {
+    if (!timeIn || !timeOut) return 'In Progress';
+    const start = new Date(timeIn);
+    const end = new Date(timeOut);
+    const diff = end - start;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    let duration = '';
+    if (hours > 0) duration += `${hours}h `;
+    if (minutes > 0) duration += `${minutes}m `;
+    if (seconds > 0) duration += `${seconds}s`;
+    
+    return duration.trim() || '0s';
+  };
+
+  // Sort attendance records by date (most recent first)
+  const sortedAttendanceRecords = [...attendanceRecords].sort((a, b) => {
+    return new Date(b.timeIn) - new Date(a.timeIn);
+  });
+
+  // Add auto-refresh for attendance records
+  useEffect(() => {
+    let interval;
+    if (activeSection === 'attendance') {
+      // Initial fetch
+      fetchAttendanceRecords();
+      // Set up interval for auto-refresh
+      interval = setInterval(fetchAttendanceRecords, 30000); // Refresh every 30 seconds
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [activeSection]);
 
   const renderMainContent = () => {
     switch (activeSection) {
@@ -317,6 +422,8 @@ const OfficerDashboard = () => {
             </div>
           </>
         );
+      case 'attendance':
+        return renderAttendanceRecords();
       default:
         return (
           <div className="dashboard-grid">
@@ -363,6 +470,105 @@ const OfficerDashboard = () => {
     }
   };
 
+  const renderAttendanceRecords = () => {
+    // Sort records by date (most recent first)
+    const sortedRecords = [...attendanceRecords].sort((a, b) => {
+      return new Date(b.timeIn) - new Date(a.timeIn);
+    });
+
+    return (
+      <div className="attendance-records">
+        <div className="section-header">
+          <h2>Attendance Records</h2>
+          <button 
+            className="view-all-btn" 
+            onClick={fetchAttendanceRecords}
+          >
+            <i className="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="loading-spinner">Loading attendance records...</div>
+        ) : error ? (
+          <div className="error-message">{error}</div>
+        ) : (
+          <div className="attendance-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Student ID</th>
+                  <th>Full Name</th>
+                  <th>Year Level</th>
+                  <th>Course</th>
+                  <th>Date & Time In</th>
+                  <th>Date & Time Out</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRecords.length > 0 ? (
+                  sortedRecords.map(record => {
+                    const timeIn = formatDateTime(record.timeIn);
+                    const timeOut = formatDateTime(record.timeOut);
+                    const duration = calculateDuration(record.timeIn, record.timeOut);
+
+                    return (
+                      <tr key={record._id}>
+                        <td>{record.title || 'Daily Attendance'}</td>
+                        <td>{record.studentId}</td>
+                        <td>{record.fullName}</td>
+                        <td>{record.yearLevel}</td>
+                        <td>{record.course}</td>
+                        <td>
+                          <div className="datetime-display">
+                            <div className="date">{timeIn.date}</div>
+                            <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
+                          </div>
+                        </td>
+                        <td>
+                          {record.timeOut ? (
+                            <div className="datetime-display">
+                              <div className="date">{timeOut.date}</div>
+                              <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#FFC107' }}>Not checked out</span>
+                          )}
+                        </td>
+                        <td>
+                          <span style={{ 
+                            color: record.timeOut ? '#4CAF50' : '#FFC107',
+                            fontFamily: 'monospace'
+                          }}>
+                            {duration}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${record.timeOut ? 'completed' : 'ongoing'}`}>
+                            {record.timeOut ? 'Completed' : 'Ongoing'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="9" className="no-records">
+                      No attendance records found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="dashboard">
@@ -391,6 +597,17 @@ const OfficerDashboard = () => {
           >
             <i className="fas fa-home"></i>
             Dashboard
+          </a>
+          <a 
+            href="#attendance" 
+            className={`nav-link ${activeSection === 'attendance' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('attendance');
+            }}
+          >
+            <i className="fas fa-clock"></i>
+            Attendance Records
           </a>
           <a 
             href="#users" 
