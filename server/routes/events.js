@@ -29,19 +29,23 @@ router.get('/:id', async (req, res) => {
 // Create event (officers only)
 router.post('/', authenticateToken, checkRole(['officer']), async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
     const event = new Event({
       title: req.body.title,
       description: req.body.description,
-      date: req.body.date,
-      time: req.body.time,
-      venue: req.body.venue,
-      status: req.body.status || 'upcoming',
-      createdBy: req.user._id
+      date: new Date(req.body.date),
+      location: req.body.location || req.body.venue,
+      status: req.body.status || 'pending',
+      createdBy: req.user.id
     });
 
     const newEvent = await event.save();
     res.status(201).json(newEvent);
   } catch (error) {
+    console.error('Error creating event:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -83,20 +87,20 @@ router.patch('/:id', authenticateToken, checkRole(['officer']), async (req, res)
 
     if (req.body.title) event.title = req.body.title;
     if (req.body.description) event.description = req.body.description;
-    if (req.body.date) event.date = req.body.date;
-    if (req.body.time) event.time = req.body.time;
-    if (req.body.venue) event.venue = req.body.venue;
+    if (req.body.date) event.date = new Date(req.body.date);
+    if (req.body.location || req.body.venue) event.location = req.body.location || req.body.venue;
     if (req.body.status) event.status = req.body.status;
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);
   } catch (error) {
+    console.error('Error updating event:', error);
     res.status(400).json({ message: error.message });
   }
 });
 
-// Delete event (officers only)
-router.delete('/:id', authenticateToken, checkRole(['officer']), async (req, res) => {
+// Delete event (officers and admins)
+router.delete('/:id', authenticateToken, checkRole(['officer', 'admin']), async (req, res) => {
   try {
     const event = await Event.findById(req.params.id);
     if (!event) {

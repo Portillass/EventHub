@@ -78,7 +78,7 @@ export default function OfficerEvents() {
       };
 
       if (selectedEvent) {
-        await axios.put(`http://localhost:2025/api/events/${selectedEvent._id}`, eventData, {
+        await axios.patch(`http://localhost:2025/api/events/${selectedEvent._id}`, eventData, {
           withCredentials: true
         });
       } else {
