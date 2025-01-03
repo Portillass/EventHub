@@ -23,6 +23,12 @@ const StudentDashboard = () => {
     yearLevel: '',
     course: ''
   });
+  const [feedbackForm, setFeedbackForm] = useState({
+    studentId: '',
+    eventId: '',
+    message: '',
+    rating: 5
+  });
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
   const [attendanceType, setAttendanceType] = useState('in');
@@ -264,6 +270,75 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      setAttendanceLoading(true);
+
+      if (!feedbackForm.studentId || !feedbackForm.eventId || !feedbackForm.message || !feedbackForm.rating) {
+        setError('Please fill in all fields');
+        return;
+      }
+
+      // Get the event details
+      const event = events.find(e => e._id === feedbackForm.eventId);
+      if (!event) {
+        setError('Selected event not found');
+        return;
+      }
+
+      const response = await fetch('http://localhost:2025/api/feedback/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          studentId: feedbackForm.studentId,
+          eventId: feedbackForm.eventId,
+          message: feedbackForm.message,
+          rating: feedbackForm.rating
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit feedback');
+      }
+
+      const data = await response.json();
+      
+      // If there's a Google Form URL in the response, open it in a new tab
+      if (data.formUrl) {
+        window.open(data.formUrl, '_blank');
+      }
+
+      setSuccessMessage('Feedback submitted successfully!');
+
+      // Show success modal
+      setShowSuccessModal(true);
+      // Auto-hide success modal after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        setSuccessMessage('');
+      }, 3000);
+
+      // Clear form
+      setFeedbackForm({
+        studentId: '',
+        eventId: '',
+        message: '',
+        rating: 5
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
   const renderMainContent = () => {
     switch (activeSection) {
       case 'events':
@@ -395,6 +470,79 @@ const StudentDashboard = () => {
             )}
           </div>
         );
+      case 'feedback':
+        return (
+          <div className="dashboard-content">
+            <div className="feedback-form">
+              <h2>Submit Feedback</h2>
+              <p>We value your feedback! Please share your thoughts about our events and services.</p>
+              
+              <div className="form-group">
+                <label>Student ID:</label>
+                <input
+                  type="text"
+                  value={feedbackForm.studentId}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, studentId: e.target.value }))}
+                  className="form-control"
+                  placeholder="Enter your Student ID"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Event:</label>
+                <select
+                  value={feedbackForm.eventId}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, eventId: e.target.value }))}
+                  className="form-control"
+                  required
+                >
+                  <option value="">Select Event</option>
+                  {events.map(event => (
+                    <option key={event._id} value={event._id}>
+                      {event.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Message:</label>
+                <textarea
+                  value={feedbackForm.message}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, message: e.target.value }))}
+                  className="form-control"
+                  placeholder="Enter your feedback message"
+                  rows="4"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Rating:</label>
+                <select
+                  value={feedbackForm.rating}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
+                  className="form-control"
+                >
+                  <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                  <option value="4">⭐⭐⭐⭐ Very Good</option>
+                  <option value="3">⭐⭐⭐ Good</option>
+                  <option value="2">⭐⭐ Fair</option>
+                  <option value="1">⭐ Poor</option>
+                </select>
+              </div>
+
+              <button 
+                className="btn-submit-feedback"
+                onClick={handleFeedbackSubmit}
+                disabled={!feedbackForm.studentId || !feedbackForm.eventId || !feedbackForm.message}
+              >
+                Submit Feedback
+              </button>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="dashboard-content">
@@ -488,6 +636,17 @@ const StudentDashboard = () => {
           >
             <i className="fas fa-calendar-alt"></i>
             Events
+          </a>
+          <a 
+            href="#feedback" 
+            className={`nav-link ${activeSection === 'feedback' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('feedback');
+            }}
+          >
+            <i className="fas fa-comment"></i>
+            Feedback
           </a>
         </nav>
       </aside>

@@ -1555,3 +1555,225 @@ select.form-control option {
 .view-all-btn i {
   font-size: 16px;
 }
+
+/* Feedback Form Styles */
+.feedback-form {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feedback-form h2 {
+  color: #FFD700;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.feedback-form p {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+}
+
+.btn-submit-feedback {
+  width: 100%;
+  padding: 12px;
+  background-color: #FFD700;
+  color: #1a1a1a;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-submit-feedback:hover {
+  background-color: #ffd900;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+}
+
+.btn-submit-feedback:disabled {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Form Group Styles for Feedback */
+.feedback-form .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.feedback-form .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.feedback-form .form-group input,
+.feedback-form .form-group textarea,
+.feedback-form .form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.feedback-form .form-group input:focus,
+.feedback-form .form-group textarea:focus,
+.feedback-form .form-group select:focus {
+  border-color: #FFD700;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+}
+
+.feedback-form .form-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.feedback-form .form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23FFD700' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.feedback-form .form-group select option {
+  background: #1a1a1a;
+  color: #fff;
+  padding: 8px;
+}
+
+/* Feedback Records Styles */
+.feedback-records {
+  padding: 1.5rem;
+}
+
+.feedback-records .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.feedback-records .filter-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.feedback-records .search-box {
+  position: relative;
+  flex: 1;
+}
+
+.feedback-records .search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.feedback-records .search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.feedback-records .filter-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.feedback-records .download-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.feedback-records .download-btn:hover {
+  background-color: #45a049;
+}
+
+.feedback-records table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.feedback-records th,
+.feedback-records td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feedback-records th {
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  color: #FFD700;
+}
+
+.feedback-records .message-cell {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feedback-records .rating-cell {
+  color: #FFD700;
+  font-weight: 600;
+}
+
+.feedback-records tr:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.feedback-records .loading,
+.feedback-records .error-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+}
+
+.feedback-records .error-message {
+  color: #f44336;
+}

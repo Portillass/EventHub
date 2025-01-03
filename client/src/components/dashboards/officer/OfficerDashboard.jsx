@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Dashboard.css';
 import OfficerEvents from '../events/OfficerEvents';
+import FeedbackRecords from './FeedbackRecords';
 
 const OfficerDashboard = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const OfficerDashboard = () => {
     totalStudents: 0
   });
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'all'
-  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events'
+  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard', 'users', 'events', 'attendance', 'feedback'
   const [titleFilter, setTitleFilter] = useState('all');
   const [yearLevelFilter, setYearLevelFilter] = useState('all');
   const [courseFilter, setCourseFilter] = useState('all');
@@ -264,22 +265,6 @@ const OfficerDashboard = () => {
     return new Date(b.timeIn) - new Date(a.timeIn);
   });
 
-  // Add auto-refresh for attendance records
-  useEffect(() => {
-    let interval;
-    if (activeSection === 'attendance') {
-      // Initial fetch
-      fetchAttendanceRecords();
-      // Set up interval for auto-refresh
-      interval = setInterval(fetchAttendanceRecords, 30000); // Refresh every 30 seconds
-    }
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [activeSection]);
-
   // Get unique values for filters
   const getUniqueValues = (key) => {
     return ['all', ...new Set(attendanceRecords.map(record => record[key]))].filter(Boolean);
@@ -445,235 +430,235 @@ const OfficerDashboard = () => {
           </>
         );
       case 'attendance':
-        return renderAttendanceRecords();
+        return (
+          <div className="attendance-section">
+            <div className="section-header">
+              <h2>Attendance Records</h2>
+              <div className="header-buttons">
+                <button 
+                  className="view-all-btn" 
+                  onClick={fetchAttendanceRecords}
+                >
+                  <i className="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button 
+                  className="download-btn"
+                  onClick={async () => {
+                    try {
+                      // Build query string with current filters
+                      const queryParams = new URLSearchParams({
+                        titleFilter,
+                        yearLevelFilter,
+                        courseFilter
+                      }).toString();
+
+                      const response = await fetch(`http://localhost:2025/api/attendance/download-excel?${queryParams}`, {
+                        credentials: 'include'
+                      });
+                      
+                      if (!response.ok) {
+                        throw new Error('Failed to download Excel file');
+                      }
+                      
+                      // Create blob from response
+                      const blob = await response.blob();
+                      
+                      // Create download link
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'attendance_records.xlsx';
+                      
+                      // Trigger download
+                      document.body.appendChild(a);
+                      a.click();
+                      
+                      // Cleanup
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error('Error downloading Excel:', error);
+                      setError('Failed to download Excel file. Please try again.');
+                    }
+                  }}
+                >
+                  <i className="fas fa-file-excel"></i> Download Excel
+                </button>
+              </div>
+            </div>
+
+            <div className="filter-controls">
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Search by ID or Name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+              
+              <div className="filter-group">
+                <select
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('title').map(title => (
+                    <option key={title} value={title}>
+                      {title === 'all' ? 'All Events' : title}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={yearLevelFilter}
+                  onChange={(e) => setYearLevelFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('yearLevel').map(year => (
+                    <option key={year} value={year}>
+                      {year === 'all' ? 'All Year Levels' : year}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={courseFilter}
+                  onChange={(e) => setCourseFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  {getUniqueValues('course').map(course => (
+                    <option key={course} value={course}>
+                      {course === 'all' ? 'All Courses' : course}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="attendance-table">
+              {loading ? (
+                <div className="loading-spinner">Loading attendance records...</div>
+              ) : filteredAttendanceRecords.length > 0 ? (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Student ID</th>
+                      <th>Full Name</th>
+                      <th>Year Level</th>
+                      <th>Course</th>
+                      <th>Event</th>
+                      <th>Date & Time In</th>
+                      <th>Date & Time Out</th>
+                      <th>Duration</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAttendanceRecords.map((record) => {
+                      const timeIn = formatDateTime(record.timeIn);
+                      const timeOut = formatDateTime(record.timeOut);
+                      const duration = calculateDuration(record.timeIn, record.timeOut);
+                      const status = record.timeOut ? 'Completed' : 'Ongoing';
+
+                      return (
+                        <tr key={record._id}>
+                          <td>{record.studentId}</td>
+                          <td>{record.fullName}</td>
+                          <td>{record.yearLevel}</td>
+                          <td>{record.course}</td>
+                          <td>{record.title || 'Daily Attendance'}</td>
+                          <td>
+                            <div className="datetime-display">
+                              <div className="date">{timeIn.date}</div>
+                              <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
+                            </div>
+                          </td>
+                          <td>
+                            {record.timeOut ? (
+                              <div className="datetime-display">
+                                <div className="date">{timeOut.date}</div>
+                                <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
+                              </div>
+                            ) : (
+                              <span style={{ color: '#FFC107' }}>Not checked out</span>
+                            )}
+                          </td>
+                          <td>
+                            <span style={{ 
+                              color: record.timeOut ? '#4CAF50' : '#FFC107',
+                              fontFamily: 'monospace'
+                            }}>
+                              {duration}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${status.toLowerCase()}`}>
+                              {status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="no-records">
+                  No attendance records found
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'feedback':
+        return <FeedbackRecords />;
       default:
         return (
-          <div className="dashboard-grid">
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Total Events</h3>
-                <div className="card-icon">
-                  <i className="fas fa-calendar"></i>
+          <div className="dashboard-content">
+            <div className="dashboard-grid">
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Total Events</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-calendar"></i>
+                  </div>
+                </div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.totalEvents}</div>
+                  <div className="stat-label">Events Created</div>
                 </div>
               </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.totalEvents}</div>
-                <div className="stat-label">Events Created</div>
-              </div>
-            </div>
 
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Upcoming Events</h3>
-                <div className="card-icon">
-                  <i className="fas fa-clock"></i>
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Upcoming Events</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-clock"></i>
+                  </div>
+                </div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.upcomingEvents}</div>
+                  <div className="stat-label">Events This Month</div>
                 </div>
               </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.upcomingEvents}</div>
-                <div className="stat-label">Events This Month</div>
-              </div>
-            </div>
 
-            <div className="dashboard-card">
-              <div className="card-header">
-                <h3>Member Count</h3>
-                <div className="card-icon">
-                  <i className="fas fa-users"></i>
+              <div className="dashboard-card">
+                <div className="card-header">
+                  <h3>Member Count</h3>
+                  <div className="card-icon">
+                    <i className="fas fa-users"></i>
+                  </div>
                 </div>
-              </div>
-              <div className="card-content">
-                <div className="stat-number">{stats.memberCount}</div>
-                <div className="stat-label">Active Members</div>
+                <div className="card-content">
+                  <div className="stat-number">{stats.memberCount}</div>
+                  <div className="stat-label">Active Members</div>
+                </div>
               </div>
             </div>
           </div>
         );
     }
-  };
-
-  const renderAttendanceRecords = () => {
-    return (
-      <div className="attendance-records">
-        <div className="section-header">
-          <h2>Attendance Records</h2>
-          <div className="header-buttons">
-            <button 
-              className="view-all-btn" 
-              onClick={fetchAttendanceRecords}
-            >
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
-            <button 
-              className="download-btn"
-              onClick={async () => {
-                try {
-                  // Build query string with current filters
-                  const queryParams = new URLSearchParams({
-                    titleFilter,
-                    yearLevelFilter,
-                    courseFilter
-                  }).toString();
-
-                  const response = await fetch(`http://localhost:2025/api/attendance/download-excel?${queryParams}`, {
-                    credentials: 'include'
-                  });
-                  
-                  if (!response.ok) {
-                    throw new Error('Failed to download Excel file');
-                  }
-                  
-                  // Create blob from response
-                  const blob = await response.blob();
-                  
-                  // Create download link
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'attendance_records.xlsx';
-                  
-                  // Trigger download
-                  document.body.appendChild(a);
-                  a.click();
-                  
-                  // Cleanup
-                  window.URL.revokeObjectURL(url);
-                  document.body.removeChild(a);
-                } catch (error) {
-                  console.error('Error downloading Excel:', error);
-                  setError('Failed to download Excel file. Please try again.');
-                }
-              }}
-            >
-              <i className="fas fa-file-excel"></i> Download Excel
-            </button>
-          </div>
-        </div>
-
-        <div className="filter-controls">
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Search by ID or Name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-          </div>
-          
-          <div className="filter-group">
-            <select
-              value={titleFilter}
-              onChange={(e) => setTitleFilter(e.target.value)}
-              className="filter-select"
-            >
-              {getUniqueValues('title').map(title => (
-                <option key={title} value={title}>
-                  {title === 'all' ? 'All Events' : title}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={yearLevelFilter}
-              onChange={(e) => setYearLevelFilter(e.target.value)}
-              className="filter-select"
-            >
-              {getUniqueValues('yearLevel').map(year => (
-                <option key={year} value={year}>
-                  {year === 'all' ? 'All Year Levels' : year}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="filter-select"
-            >
-              {getUniqueValues('course').map(course => (
-                <option key={course} value={course}>
-                  {course === 'all' ? 'All Courses' : course}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="attendance-table">
-          {loading ? (
-            <div className="loading-spinner">Loading attendance records...</div>
-          ) : filteredAttendanceRecords.length > 0 ? (
-            <table>
-              <thead>
-                <tr>
-                  <th>Student ID</th>
-                  <th>Full Name</th>
-                  <th>Year Level</th>
-                  <th>Course</th>
-                  <th>Event</th>
-                  <th>Date & Time In</th>
-                  <th>Date & Time Out</th>
-                  <th>Duration</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAttendanceRecords.map((record) => {
-                  const timeIn = formatDateTime(record.timeIn);
-                  const timeOut = formatDateTime(record.timeOut);
-                  const duration = calculateDuration(record.timeIn, record.timeOut);
-                  const status = record.timeOut ? 'Completed' : 'Ongoing';
-
-                  return (
-                    <tr key={record._id}>
-                      <td>{record.studentId}</td>
-                      <td>{record.fullName}</td>
-                      <td>{record.yearLevel}</td>
-                      <td>{record.course}</td>
-                      <td>{record.title || 'Daily Attendance'}</td>
-                      <td>
-                        <div className="datetime-display">
-                          <div className="date">{timeIn.date}</div>
-                          <div className="time" style={{ color: '#4CAF50' }}>{timeIn.time}</div>
-                        </div>
-                      </td>
-                      <td>
-                        {record.timeOut ? (
-                          <div className="datetime-display">
-                            <div className="date">{timeOut.date}</div>
-                            <div className="time" style={{ color: '#f44336' }}>{timeOut.time}</div>
-                          </div>
-                        ) : (
-                          <span style={{ color: '#FFC107' }}>Not checked out</span>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{ 
-                          color: record.timeOut ? '#4CAF50' : '#FFC107',
-                          fontFamily: 'monospace'
-                        }}>
-                          {duration}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${status.toLowerCase()}`}>
-                          {status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : (
-            <div className="no-records">
-              No attendance records found
-            </div>
-          )}
-        </div>
-      </div>
-    );
   };
 
   if (loading) {
@@ -684,9 +669,8 @@ const OfficerDashboard = () => {
     );
   }
 
-  return (
+    return (
     <div className="dashboard">
-      {/* Sidebar */}
       <aside className="dashboard-sidebar">
         <div className="sidebar-header">
           <i className="fas fa-home brand-logo"></i>
@@ -741,11 +725,20 @@ const OfficerDashboard = () => {
             <i className="fas fa-calendar-alt"></i>
             Events
           </a>
- 
+          <a 
+            href="#feedback" 
+            className={`nav-link ${activeSection === 'feedback' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('feedback');
+            }}
+          >
+            <i className="fas fa-comment"></i>
+            Feedback
+          </a>
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="dashboard-main">
         <header className="main-header">
           <div className="welcome-section">

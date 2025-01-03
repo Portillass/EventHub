@@ -4,6 +4,7 @@ const passport = require('passport');
 const User = require('../models/User');
 const nodemailer = require('nodemailer');
 const { verifyRecaptcha } = require('../middleware/recaptcha');
+const { google } = require('googleapis');
 
 // Email transporter setup
 const transporter = nodemailer.createTransport({
@@ -13,6 +14,13 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS
   }
 });
+
+// Configure OAuth2 client for Forms API
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'http://localhost:2025/api/auth/google/forms/callback'
+);
 
 // Google OAuth routes
 router.get('/google',
@@ -246,6 +254,41 @@ router.post('/signup', verifyRecaptcha, async (req, res) => {
       message: 'Registration failed', 
       error: error.message 
     });
+  }
+});
+
+// Generate auth URL for Forms API
+router.get('/google/forms', (req, res) => {
+  const scopes = [
+    'https://www.googleapis.com/auth/forms.body',
+    'https://www.googleapis.com/auth/forms.responses.readonly'
+  ];
+
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+    prompt: 'consent'
+  });
+
+  res.redirect(authUrl);
+});
+
+// Handle callback and get refresh token
+router.get('/google/forms/callback', async (req, res) => {
+  const { code } = req.query;
+  
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    console.log('Refresh Token:', tokens.refresh_token);
+    
+    res.send(`
+      <h1>Authorization Successful!</h1>
+      <p>Your refresh token is: ${tokens.refresh_token}</p>
+      <p>Please copy this token and add it to your .env file as GOOGLE_REFRESH_TOKEN</p>
+    `);
+  } catch (error) {
+    console.error('Error getting tokens:', error);
+    res.status(500).send('Failed to get tokens');
   }
 });
 

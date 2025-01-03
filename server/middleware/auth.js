@@ -1,23 +1,40 @@
-// Authentication middleware
-const authenticateToken = (req, res, next) => {
-  // Check if user is authenticated through session
-  if (req.session && req.session.user) {
-    // Attach user to req.user for compatibility with existing code
-    req.user = req.session.user;
-    return next();
-  }
-  return res.status(401).json({ message: 'Not authenticated' });
-};
+const jwt = require('jsonwebtoken');
 
-// Role-based authorization middleware
-const authorizeRoles = (roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Not authenticated' });
+const authenticateToken = (req, res, next) => {
+  try {
+    // Check for session authentication first
+    if (req.session && req.session.user) {
+      req.user = req.session.user;
+      return next();
     }
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Not authorized' });
+    // Then check for token authentication
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: 'Invalid or expired token' });
+      }
+      req.user = user;
+      next();
+    });
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(500).json({ message: 'Authentication failed' });
+  }
+};
+
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Access denied. Insufficient permissions.' });
     }
 
     next();
@@ -26,5 +43,5 @@ const authorizeRoles = (roles) => {
 
 module.exports = {
   authenticateToken,
-  authorizeRoles
+  checkRole
 }; 
