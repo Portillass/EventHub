@@ -28,6 +28,7 @@ export default function AdminEvents() {
   const [selectedAction, setSelectedAction] = useState(null);
   const [successModal, setSuccessModal] = useState(false);
   const [emailStats, setEmailStats] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,17 +100,22 @@ export default function AdminEvents() {
   };
 
   const handleDelete = async (eventId) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
-      try {
-        await axios.delete(`http://localhost:2025/api/events/${eventId}`, {
-          withCredentials: true
-        });
-        await fetchEvents();
-      } catch (error) {
-        console.error('Error deleting event:', error);
-        setError('Failed to delete event. Please try again.');
-      }
+    try {
+      await axios.delete(`http://localhost:2025/api/events/${eventId}`, {
+        withCredentials: true
+      });
+      await fetchEvents();
+      setShowDeleteModal(false);
+      setSelectedEventId(null);
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      setError('Failed to delete event. Please try again.');
     }
+  };
+
+  const initiateDelete = (eventId) => {
+    setSelectedEventId(eventId);
+    setShowDeleteModal(true);
   };
 
   const filteredEvents = events.filter(event => {
@@ -266,7 +272,7 @@ export default function AdminEvents() {
                         </button>
                       )}
                       <button
-                        onClick={() => handleDelete(event._id)}
+                        onClick={() => initiateDelete(event._id)}
                         className="action-btn delete"
                         title="Delete"
                       >
@@ -325,6 +331,48 @@ export default function AdminEvents() {
                   className="modal-btn submit"
                 >
                   Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Delete Event</h2>
+              <button
+                className="event-close-btn"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setSelectedEventId(null);
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '2rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: '#fff' }}>
+                Are you sure you want to delete this event? This action cannot be undone.
+              </p>
+              <div className="modal-footer" style={{ justifyContent: 'center', gap: '1rem' }}>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setSelectedEventId(null);
+                  }}
+                  className="modal-btn cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(selectedEventId)}
+                  className="modal-btn delete"
+                  style={{ backgroundColor: '#dc3545' }}
+                >
+                  Delete
                 </button>
               </div>
             </div>
