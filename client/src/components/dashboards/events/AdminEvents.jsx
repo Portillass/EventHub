@@ -5,6 +5,17 @@ import { FaEdit, FaTrash, FaCheck, FaArchive, FaSearch, FaTimes } from 'react-ic
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Events.css';
 import '../../../styles/OfficerEventModal.css';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  CircularProgress,
+} from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export default function AdminEvents() {
   const [events, setEvents] = useState([]);
@@ -15,6 +26,8 @@ export default function AdminEvents() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedAction, setSelectedAction] = useState(null);
+  const [successModal, setSuccessModal] = useState(false);
+  const [emailStats, setEmailStats] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,20 +70,25 @@ export default function AdminEvents() {
 
   const handleStatusChange = async (eventId, newStatus) => {
     try {
-      await axios.post(`http://localhost:2025/api/events/${eventId}/status`, {
-        status: newStatus
-      }, {
-        withCredentials: true
-      });
-      
-      // Refresh events list after status change
-      await fetchEvents();
-      setShowConfirmModal(false);
-      setSelectedEventId(null);
-      setSelectedAction(null);
+      setLoading(true);
+      const response = await axios.post(
+        `http://localhost:2025/api/events/${eventId}/status`,
+        { status: newStatus },
+        { withCredentials: true }
+      );
+
+      if (newStatus === 'approved') {
+        setEmailStats(response.data.emailStats);
+        setSuccessModal(true);
+      }
+
+      // Refresh events list
+      fetchEvents();
     } catch (error) {
       console.error('Error updating event status:', error);
-      setError('Failed to update event status. Please try again.');
+      setError('Failed to update event status');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,6 +120,59 @@ export default function AdminEvents() {
     
     return statusFilter === 'all' ? matchesSearch : (matchesSearch && event.status === statusFilter);
   });
+
+  // Success Modal Component
+  const SuccessModal = () => (
+    <Dialog 
+      open={successModal} 
+      onClose={() => setSuccessModal(false)}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
+        <CheckCircleIcon sx={{ color: 'success.main', fontSize: 60, mb: 1 }} />
+      </DialogTitle>
+      <DialogContent sx={{ textAlign: 'center', py: 3 }}>
+        <Typography variant="h5" gutterBottom sx={{ color: 'success.main', fontWeight: 'bold' }}>
+          Congratulations!
+        </Typography>
+        <Typography variant="body1" gutterBottom>
+          The event has been successfully approved.
+        </Typography>
+        {emailStats && (
+          <Box sx={{ mt: 2, bgcolor: '#f5f5f5', p: 2, borderRadius: 1 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Email Notification Summary:
+            </Typography>
+            <Typography variant="body2">
+              Total Recipients: {emailStats.totalAttempted}
+            </Typography>
+            <Typography variant="body2" color="success.main">
+              Successfully Sent: {emailStats.successful}
+            </Typography>
+            {emailStats.failed > 0 && (
+              <Typography variant="body2" color="error">
+                Failed to Send: {emailStats.failed}
+              </Typography>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+        <Button 
+          variant="contained" 
+          onClick={() => setSuccessModal(false)}
+          sx={{
+            bgcolor: 'success.main',
+            '&:hover': { bgcolor: 'success.dark' },
+            px: 4
+          }}
+        >
+          Done
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   if (error) {
     return (
@@ -260,6 +331,8 @@ export default function AdminEvents() {
           </div>
         </div>
       )}
+
+      <SuccessModal />
     </div>
   );
 } 

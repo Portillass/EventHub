@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { authenticateToken, checkRole } = require('../middleware/auth');
+const { sendEventNotification } = require('../services/emailService');
 
 // Get all events
 router.get('/', async (req, res) => {
@@ -67,13 +69,33 @@ router.post('/:id/status', authenticateToken, checkRole(['admin']), async (req, 
     if (status === 'approved') {
       event.approvedBy = req.user.id;
       event.approvedAt = new Date();
+
+      // Get all active users to send notifications
+      console.log('Event approved, sending notifications...');
+      const activeUsers = await User.find({ status: 'active' });
+      console.log('Found active users:', activeUsers.length);
+      
+      // Send email notifications
+      const emailResult = await sendEventNotification(activeUsers, event);
+      console.log('Email notification result:', emailResult);
+
+      await event.save();
+
+      return res.json({ 
+        message: 'Event approved successfully',
+        event: event,
+        emailStats: emailResult
+      });
     }
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);
   } catch (error) {
     console.error('Error updating event status:', error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      message: 'Error updating event status',
+      error: error.message 
+    });
   }
 });
 
@@ -111,6 +133,42 @@ router.delete('/:id', authenticateToken, checkRole(['officer', 'admin']), async 
     res.json({ message: 'Event deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Approve event route
+router.post('/:id/approve', authenticateToken, checkRole(['admin']), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    event.status = 'approved';
+    event.approvedBy = req.user.id;
+    event.approvedAt = new Date();
+    await event.save();
+
+    console.log('Event approved successfully:', event._id);
+
+    // Get all active users to send notifications
+    const activeUsers = await User.find({ status: 'active' });
+    console.log('Found active users:', activeUsers.length);
+    
+    // Send email notifications
+    const emailResult = await sendEventNotification(activeUsers, event);
+    console.log('Email notification result:', emailResult);
+
+    res.json({ 
+      message: 'Event approved successfully',
+      emailStats: emailResult
+    });
+  } catch (error) {
+    console.error('Error in event approval process:', error);
+    res.status(500).json({ 
+      message: 'Error approving event',
+      error: error.message 
+    });
   }
 });
 
