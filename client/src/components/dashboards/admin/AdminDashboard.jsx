@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import '../../../styles/Dashboard.css';
 import AdminEvents from '../events/AdminEvents';
 import FeedbackRecords from '../officer/FeedbackRecords';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -282,6 +283,8 @@ const AdminDashboard = () => {
 
   const renderMainContent = () => {
     switch (activeSection) {
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'events':
         return <AdminEvents userRole="admin" />;
       case 'attendance':
@@ -701,6 +704,17 @@ const AdminDashboard = () => {
           >
             <i className="fas fa-home"></i>
             Dashboard
+          </a>
+          <a 
+            href="#analytics" 
+            className={`nav-link ${activeSection === 'analytics' ? 'active' : ''}`}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveSection('analytics');
+            }}
+          >
+            <i className="fas fa-chart-line"></i>
+            Analytics
           </a>
           <a 
             href="#users" 

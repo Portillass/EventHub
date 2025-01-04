@@ -16,6 +16,7 @@ const userRoutes = require('./routes/users');
 const eventRoutes = require('./routes/events');
 const attendanceRoutes = require('./routes/attendance');
 const feedbackRoutes = require('./routes/feedback');
+const analyticsRoutes = require('./routes/analytics');
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -64,6 +65,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Debug route to check session
 app.get('/api/debug/session', (req, res) => {
