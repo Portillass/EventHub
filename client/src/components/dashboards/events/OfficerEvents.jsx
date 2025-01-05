@@ -23,6 +23,8 @@ export default function OfficerEvents() {
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -136,9 +138,17 @@ export default function OfficerEvents() {
     setShowModal(true);
   };
 
-  const handleGenerateQR = (eventId) => {
-    // TODO: Implement QR code generation
-    console.log('Generate QR for event:', eventId);
+  const handleGenerateQR = async (eventId) => {
+    try {
+      const response = await axios.get(`http://localhost:2025/api/events/${eventId}/qr`, {
+        withCredentials: true
+      });
+      setQrCodeData(response.data.qrCode);
+      setShowQRModal(true);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      setError('Failed to generate QR code');
+    }
   };
 
   const filteredEvents = events.filter(event => {
@@ -408,6 +418,59 @@ export default function OfficerEvents() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQRModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Event QR Code</h2>
+              <button
+                className="event-close-btn"
+                onClick={() => {
+                  setShowQRModal(false);
+                  setQrCodeData(null);
+                }}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '2rem', textAlign: 'center' }}>
+              {qrCodeData ? (
+                <div>
+                  <img 
+                    src={qrCodeData} 
+                    alt="Event QR Code" 
+                    style={{ 
+                      maxWidth: '100%', 
+                      height: 'auto',
+                      marginBottom: '1rem' 
+                    }} 
+                  />
+                  <p style={{ marginTop: '1rem', color: '#fff' }}>
+                    Scan this QR code to access the event page
+                  </p>
+                  <button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = qrCodeData;
+                      link.download = 'event-qr-code.png';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="modal-btn submit"
+                    style={{ marginTop: '1rem' }}
+                  >
+                    Download QR Code
+                  </button>
+                </div>
+              ) : (
+                <div className="loading-message">Generating QR code...</div>
+              )}
             </div>
           </div>
         </div>

@@ -4,6 +4,8 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { authenticateToken, checkRole } = require('../middleware/auth');
 const { sendEventNotification } = require('../services/emailService');
+const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('../services/calendarService');
+const { generateQRCode } = require('../services/qrService');
 
 // Get all events
 router.get('/', async (req, res) => {
@@ -35,6 +37,11 @@ router.post('/', authenticateToken, checkRole(['officer']), async (req, res) => 
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    // Validate required fields
+    if (!req.body.title || !req.body.description || !req.body.date || !req.body.location) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
     const event = new Event({
       title: req.body.title,
       description: req.body.description,
@@ -44,11 +51,31 @@ router.post('/', authenticateToken, checkRole(['officer']), async (req, res) => 
       createdBy: req.user.id
     });
 
+    // Save event to database first
     const newEvent = await event.save();
-    res.status(201).json(newEvent);
+
+    // Try to create Google Calendar event
+    try {
+      const calendarEvent = await createCalendarEvent(newEvent);
+      if (calendarEvent && calendarEvent.id) {
+        newEvent.calendarEventId = calendarEvent.id;
+        await newEvent.save();
+      }
+    } catch (calendarError) {
+      console.error('Failed to create calendar event:', calendarError);
+      // Don't fail the entire request if calendar creation fails
+    }
+
+    res.status(201).json({
+      message: 'Event created successfully',
+      event: newEvent
+    });
   } catch (error) {
     console.error('Error creating event:', error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ 
+      message: 'Failed to create event',
+      error: error.message 
+    });
   }
 });
 
@@ -113,6 +140,11 @@ router.patch('/:id', authenticateToken, checkRole(['officer']), async (req, res)
     if (req.body.location || req.body.venue) event.location = req.body.location || req.body.venue;
     if (req.body.status) event.status = req.body.status;
 
+    // Update Google Calendar event if it exists
+    if (event.calendarEventId) {
+      await updateCalendarEvent(event.calendarEventId, event);
+    }
+
     const updatedEvent = await event.save();
     res.json(updatedEvent);
   } catch (error) {
@@ -127,6 +159,11 @@ router.delete('/:id', authenticateToken, checkRole(['officer', 'admin']), async 
     const event = await Event.findById(req.params.id);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Delete Google Calendar event if it exists
+    if (event.calendarEventId) {
+      await deleteCalendarEvent(event.calendarEventId);
     }
 
     await event.deleteOne();
@@ -169,6 +206,22 @@ router.post('/:id/approve', authenticateToken, checkRole(['admin']), async (req,
       message: 'Error approving event',
       error: error.message 
     });
+  }
+});
+
+// Add this new route for QR code generation
+router.get('/:id/qr', authenticateToken, checkRole(['officer']), async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    const qrCodeDataUrl = await generateQRCode(event._id);
+    res.json({ qrCode: qrCodeDataUrl });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ message: 'Failed to generate QR code' });
   }
 });
 

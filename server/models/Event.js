@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const eventSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
-    trim: true
+    required: true
   },
   description: {
     type: String,
@@ -18,15 +17,15 @@ const eventSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'archived'],
+    default: 'pending'
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'archived'],
-    default: 'pending'
   },
   approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -34,11 +33,13 @@ const eventSchema = new mongoose.Schema({
   },
   approvedAt: {
     type: Date
+  },
+  calendarEventId: {
+    type: String,
+    sparse: true
   }
 }, {
   timestamps: true
 });
 
-const Event = mongoose.model('Event', eventSchema);
-
-module.exports = Event; 
+module.exports = mongoose.model('Event', eventSchema); 
