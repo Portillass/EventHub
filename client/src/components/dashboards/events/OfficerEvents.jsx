@@ -19,7 +19,8 @@ export default function OfficerEvents() {
     title: '',
     description: '',
     date: '',
-    location: ''
+    location: '',
+    feedbackUrl: ''
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
@@ -93,7 +94,7 @@ export default function OfficerEvents() {
 
       setShowModal(false);
       setSelectedEvent(null);
-      setFormData({ title: '', description: '', date: '', location: '' });
+      setFormData({ title: '', description: '', date: '', location: '', feedbackUrl: '' });
       await fetchEvents();
       
       // Show success modal
@@ -181,7 +182,7 @@ export default function OfficerEvents() {
           <button
             onClick={() => {
               setSelectedEvent(null);
-              setFormData({ title: '', description: '', date: '', location: '' });
+              setFormData({ title: '', description: '', date: '', location: '', feedbackUrl: '' });
               setShowModal(true);
             }}
             className="create-event-btn"
@@ -291,7 +292,7 @@ export default function OfficerEvents() {
                 onClick={() => {
                   setShowModal(false);
                   setSelectedEvent(null);
-                  setFormData({ title: '', description: '', date: '', location: '' });
+                  setFormData({ title: '', description: '', date: '', location: '', feedbackUrl: '' });
                 }}
               >
                 <FaTimes />
@@ -346,13 +347,23 @@ export default function OfficerEvents() {
                   required
                 />
               </div>
+              <div className="form-group">
+                <label className="form-label">Feedback URL</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  value={formData.feedbackUrl}
+                  onChange={(e) => setFormData({ ...formData, feedbackUrl: e.target.value })}
+                  placeholder="Enter feedback form URL"
+                />
+              </div>
               <div className="modal-footer">
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
                     setSelectedEvent(null);
-                    setFormData({ title: '', description: '', date: '', location: '' });
+                    setFormData({ title: '', description: '', date: '', location: '', feedbackUrl: '' });
                   }}
                   className="modal-btn cancel"
                 >

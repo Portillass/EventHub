@@ -31,7 +31,8 @@ const StudentDashboard = () => {
     studentId: '',
     eventId: '',
     message: '',
-    rating: 5
+    rating: 5,
+    formUrl: ''
   });
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState('');
@@ -310,8 +311,8 @@ const StudentDashboard = () => {
       setError(null);
       setAttendanceLoading(true);
 
-      if (!feedbackForm.studentId || !feedbackForm.eventId || !feedbackForm.message || !feedbackForm.rating) {
-        setError('Please fill in all fields');
+      if (!feedbackForm.eventId) {
+        setError('Please select an event');
         return;
       }
 
@@ -322,52 +323,14 @@ const StudentDashboard = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:2025/api/feedback/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          studentId: feedbackForm.studentId,
-          eventId: feedbackForm.eventId,
-          message: feedbackForm.message,
-          rating: feedbackForm.rating
-        })
-      });
+      setFeedbackForm(prev => ({
+        ...prev,
+        formUrl: event.feedbackUrl || ''
+      }));
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit feedback');
-      }
-
-      const data = await response.json();
-      
-      // If there's a Google Form URL in the response, open it in a new tab
-      if (data.formUrl) {
-        window.open(data.formUrl, '_blank');
-      }
-
-      setSuccessMessage('Feedback submitted successfully!');
-
-      // Show success modal
-      setShowSuccessModal(true);
-      // Auto-hide success modal after 3 seconds
-      setTimeout(() => {
-        setShowSuccessModal(false);
-        setSuccessMessage('');
-      }, 3000);
-
-      // Clear form
-      setFeedbackForm({
-        studentId: '',
-        eventId: '',
-        message: '',
-        rating: 5
-      });
     } catch (error) {
       console.error('Error:', error);
-      setError(error.message || 'Failed to submit feedback. Please try again.');
+      setError(error.message || 'Failed to get feedback form URL. Please try again.');
     } finally {
       setAttendanceLoading(false);
     }
@@ -526,26 +489,21 @@ const StudentDashboard = () => {
         return (
           <div className="dashboard-content">
             <div className="feedback-form">
-              <h2>Submit Feedback</h2>
-              <p>We value your feedback! Please share your thoughts about our events and services.</p>
+              <h2>Feedback URL</h2>
+              <p>Select an event to view its feedback form URL.</p>
               
-              <div className="form-group">
-                <label>Student ID:</label>
-                <input
-                  type="text"
-                  value={feedbackForm.studentId}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, studentId: e.target.value }))}
-                  className="form-control"
-                  placeholder="Enter your Student ID"
-                  required
-                />
-              </div>
-
               <div className="form-group">
                 <label>Event:</label>
                 <select
                   value={feedbackForm.eventId}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, eventId: e.target.value }))}
+                  onChange={(e) => {
+                    const selectedEvent = events.find(event => event._id === e.target.value);
+                    setFeedbackForm(prev => ({
+                      ...prev,
+                      eventId: e.target.value,
+                      formUrl: selectedEvent ? selectedEvent.feedbackUrl : ''
+                    }));
+                  }}
                   className="form-control"
                   required
                 >
@@ -558,40 +516,47 @@ const StudentDashboard = () => {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Message:</label>
-                <textarea
-                  value={feedbackForm.message}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, message: e.target.value }))}
-                  className="form-control"
-                  placeholder="Enter your feedback message"
-                  rows="4"
-                  required
-                />
-              </div>
+              {feedbackForm.formUrl && (
+                <div className="url-display-section">
+                  <label>Feedback Form URL:</label>
+                  <div className="url-container">
+                    <input 
+                      type="text" 
+                      value={feedbackForm.formUrl} 
+                      readOnly 
+                      className="url-input"
+                    />
+                    <div className="url-actions">
+                      <button 
+                        className="btn-url-action"
+                        onClick={() => window.open(feedbackForm.formUrl, '_blank')}
+                        title="Open in new tab"
+                      >
+                        <i className="fas fa-external-link-alt"></i>
+                      </button>
+                      <button 
+                        className="btn-url-action"
+                        onClick={() => {
+                          navigator.clipboard.writeText(feedbackForm.formUrl);
+                          setSuccessMessage('URL copied to clipboard!');
+                          setShowSuccessModal(true);
+                          setTimeout(() => {
+                            setShowSuccessModal(false);
+                            setSuccessMessage('');
+                          }, 2000);
+                        }}
+                        title="Copy to clipboard"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="form-group">
-                <label>Rating:</label>
-                <select
-                  value={feedbackForm.rating}
-                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
-                  className="form-control"
-                >
-                  <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                  <option value="4">⭐⭐⭐⭐ Very Good</option>
-                  <option value="3">⭐⭐⭐ Good</option>
-                  <option value="2">⭐⭐ Fair</option>
-                  <option value="1">⭐ Poor</option>
-                </select>
-              </div>
-
-              <button 
-                className="btn-submit-feedback"
-                onClick={handleFeedbackSubmit}
-                disabled={!feedbackForm.studentId || !feedbackForm.eventId || !feedbackForm.message}
-              >
-                Submit Feedback
-              </button>
+              {!feedbackForm.formUrl && feedbackForm.eventId && (
+                <p className="error-message">No feedback form URL available for this event.</p>
+              )}
             </div>
           </div>
         );
@@ -697,8 +662,8 @@ const StudentDashboard = () => {
               setActiveSection('feedback');
             }}
           >
-            <i className="fas fa-comment"></i>
-            Feedback
+            <i className="fas fa-link"></i>
+            Feedback URL
           </a>
         </nav>
       </aside>

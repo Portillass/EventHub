@@ -17,6 +17,10 @@ const eventSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  feedbackUrl: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected', 'archived'],

@@ -47,6 +47,7 @@ router.post('/', authenticateToken, checkRole(['officer']), async (req, res) => 
       description: req.body.description,
       date: new Date(req.body.date),
       location: req.body.location || req.body.venue,
+      feedbackUrl: req.body.feedbackUrl || '',
       status: req.body.status || 'pending',
       createdBy: req.user.id
     });
@@ -139,6 +140,7 @@ router.patch('/:id', authenticateToken, checkRole(['officer']), async (req, res)
     if (req.body.date) event.date = new Date(req.body.date);
     if (req.body.location || req.body.venue) event.location = req.body.location || req.body.venue;
     if (req.body.status) event.status = req.body.status;
+    if (req.body.feedbackUrl !== undefined) event.feedbackUrl = req.body.feedbackUrl;
 
     // Update Google Calendar event if it exists
     if (event.calendarEventId) {

@@ -203,42 +203,13 @@ const AnalyticsDashboard = () => {
           </Paper>
         </Grid>
 
-        {/* Feedback Distribution */}
+        {/* Remove Feedback Distribution section */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 2, backgroundColor: currentTheme.paper }}>
             <Typography variant="h6" gutterBottom sx={{ color: currentTheme.text }}>
-              Feedback Distribution
+              Active Users by Role
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={Object.entries(demographics?.feedbackDistribution || {}).map(([key, value]) => ({
-                    name: key,
-                    value,
-                  }))}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: currentTheme.text }}
-                >
-                  {Object.entries(demographics?.feedbackDistribution || {}).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={currentTheme.chartColors[index % currentTheme.chartColors.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: currentTheme.paper,
-                    color: currentTheme.text,
-                    border: `1px solid ${currentTheme.gridLines}`
-                  }}
-                  labelStyle={{ color: currentTheme.text }}
-                />
-                <Legend wrapperStyle={{ color: currentTheme.text }} />
-              </PieChart>
-            </ResponsiveContainer>
+            // ... existing code ...
           </Paper>
         </Grid>
 

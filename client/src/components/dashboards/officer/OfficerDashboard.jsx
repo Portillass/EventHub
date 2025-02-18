@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../../styles/Dashboard.css';
 import OfficerEvents from '../events/OfficerEvents';
-import FeedbackRecords from './FeedbackRecords';
 
 const OfficerDashboard = () => {
   const navigate = useNavigate();
@@ -611,8 +610,6 @@ const OfficerDashboard = () => {
             </div>
           </div>
         );
-      case 'feedback':
-        return <FeedbackRecords />;
       default:
         return (
           <div className="dashboard-content">
@@ -724,17 +721,6 @@ const OfficerDashboard = () => {
           >
             <i className="fas fa-calendar-alt"></i>
             Events
-          </a>
-          <a 
-            href="#feedback" 
-            className={`nav-link ${activeSection === 'feedback' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('feedback');
-            }}
-          >
-            <i className="fas fa-comment"></i>
-            Feedback
           </a>
         </nav>
       </aside>
