@@ -17,11 +17,15 @@ const StudentDashboard = () => {
   const [attendanceId, setAttendanceId] = useState(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
-    studentId: '',
-    fullName: '',
-    yearLevel: '',
-    course: ''
+  const [formData, setFormData] = useState(() => {
+    // Try to get stored user info from localStorage
+    const storedInfo = localStorage.getItem('studentInfo');
+    return storedInfo ? JSON.parse(storedInfo) : {
+      studentId: '',
+      fullName: '',
+      yearLevel: '',
+      course: ''
+    };
   });
   const [feedbackForm, setFeedbackForm] = useState({
     studentId: '',
@@ -180,6 +184,16 @@ const StudentDashboard = () => {
           return;
         }
 
+        // Store user information in localStorage after successful first submission
+        if (!localStorage.getItem('studentInfo')) {
+          localStorage.setItem('studentInfo', JSON.stringify({
+            studentId: formData.studentId,
+            fullName: formData.fullName,
+            yearLevel: formData.yearLevel,
+            course: formData.course
+          }));
+        }
+
         // Mark attendance in
         const checkinResponse = await fetch('http://localhost:2025/api/attendance/checkin', {
           method: 'POST',
@@ -242,9 +256,27 @@ const StudentDashboard = () => {
         }
 
         setSuccessMessage('Attendance Out marked successfully!');
+        
+        // Set feedback form student ID and event ID from the active record
+        setFeedbackForm(prev => ({
+          ...prev,
+          studentId: formData.studentId,
+          eventId: activeRecord.event || '' // Use empty string if it's daily attendance
+        }));
+
+        // Show success modal
+        setShowSuccessModal(true);
+        // Auto-hide success modal after 2 seconds and redirect to feedback
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          setSuccessMessage('');
+          setActiveSection('feedback'); // Redirect to feedback form
+        }, 2000);
+        
+        return; // Exit early since we're redirecting
       }
 
-      // Show success modal
+      // Show success modal for check-in
       setShowSuccessModal(true);
       // Auto-hide success modal after 3 seconds
       setTimeout(() => {
@@ -253,12 +285,14 @@ const StudentDashboard = () => {
       }, 3000);
 
       // Clear form and refresh attendance status
-      setFormData({
-        studentId: '',
-        fullName: '',
-        yearLevel: '',
-        course: ''
-      });
+      if (!localStorage.getItem('studentInfo')) {
+        setFormData({
+          studentId: '',
+          fullName: '',
+          yearLevel: '',
+          course: ''
+        });
+      }
       setSelectedEvent('');
       setAttendanceType('in');
       checkActiveAttendance();
@@ -339,75 +373,56 @@ const StudentDashboard = () => {
     }
   };
 
-  const renderMainContent = () => {
-    switch (activeSection) {
-      case 'events':
-        return <StudentEvents />;
-      case 'attendance':
-        return (
-          <div className="attendance-section">
-            <h2>Attendance Form</h2>
-            {attendanceLoading ? (
-              <div className="loading-spinner">Loading...</div>
-            ) : (
-              <div className="attendance-form">
-                <div className="attendance-type-selector">
-                  <button 
-                    className={`type-btn ${attendanceType === 'in' ? 'active' : ''}`}
-                    onClick={() => setAttendanceType('in')}
-                  >
-                    Attendance In
-                  </button>
-                  <button 
-                    className={`type-btn ${attendanceType === 'out' ? 'active' : ''}`}
-                    onClick={() => setAttendanceType('out')}
-                  >
-                    Attendance Out
-                  </button>
-                </div>
+  const renderAttendanceForm = () => {
+    const hasStoredInfo = localStorage.getItem('studentInfo');
+    const storedInfo = hasStoredInfo ? JSON.parse(hasStoredInfo) : null;
 
-                {attendanceType === 'in' && (
-                  <div className="form-group">
-                    <label>Event:</label>
-                    <select
-                      name="event"
-                      value={selectedEvent}
-                      onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="form-control"
-                      required
-                    >
-                      <option value="">Select Event</option>
-                      <option value="daily">Daily Attendance</option>
-                      {events.map(event => (
-                        <option key={event._id} value={event._id}>
-                          {event.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+    return (
+      <div className="attendance-section">
+        <h2>Attendance Form</h2>
+        {attendanceLoading ? (
+          <div className="loading-spinner">Loading...</div>
+        ) : (
+          <div className="attendance-form">
+            <div className="attendance-type-selector">
+              <button
+                className={`type-btn ${attendanceType === 'in' ? 'active' : ''}`}
+                onClick={() => setAttendanceType('in')}
+              >
+                Attendance In
+              </button>
+              <button
+                className={`type-btn ${attendanceType === 'out' ? 'active' : ''}`}
+                onClick={() => setAttendanceType('out')}
+              >
+                Attendance Out
+              </button>
+            </div>
 
-                <div className="form-group">
-                  <label>Student ID:</label>
-                  <input 
-                    type="text" 
-                    name="studentId"
-                    value={formData.studentId} 
-                    onChange={handleInputChange}
-                    className="form-control"
-                    placeholder="Enter your Student ID"
-                    required
-                  />
-                </div>
+            <div className="form-group">
+              <label>Student ID:</label>
+              <input
+                type="text"
+                name="studentId"
+                value={formData.studentId}
+                onChange={handleInputChange}
+                className="form-control"
+                placeholder="Enter your Student ID"
+                required
+                disabled={hasStoredInfo}
+              />
+            </div>
 
-                {attendanceType === 'in' && (
+            {attendanceType === 'in' && (
+              <>
+                {!hasStoredInfo && (
                   <>
                     <div className="form-group">
                       <label>Full Name:</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="fullName"
-                        value={formData.fullName} 
+                        value={formData.fullName}
                         onChange={handleInputChange}
                         className="form-control"
                         placeholder="Enter your Full Name"
@@ -432,10 +447,10 @@ const StudentDashboard = () => {
                     </div>
                     <div className="form-group">
                       <label>Course:</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="course"
-                        value={formData.course} 
+                        value={formData.course}
                         onChange={handleInputChange}
                         className="form-control"
                         placeholder="Enter your Course"
@@ -446,28 +461,65 @@ const StudentDashboard = () => {
                 )}
 
                 <div className="form-group">
+                  <label>Event:</label>
+                  <select
+                    value={selectedEvent}
+                    onChange={(e) => setSelectedEvent(e.target.value)}
+                    className="form-control"
+                    required
+                  >
+                    <option value="">Select Event</option>
+                    <option value="daily">Daily Attendance</option>
+                    {events.map(event => (
+                      <option key={event._id} value={event._id}>
+                        {event.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label>Current Date & Time:</label>
-                  <input 
-                    type="text" 
-                    value={new Date().toLocaleString()} 
-                    disabled 
+                  <input
+                    type="text"
+                    value={new Date().toLocaleString()}
+                    disabled
                     className="form-control"
                   />
                 </div>
+              </>
+            )}
 
-                <div className="attendance-buttons">
-                  <button 
-                    onClick={handleAttendanceSubmit}
-                    className={`btn-attendance-${attendanceType}`}
-                    disabled={attendanceLoading || 
-                      (attendanceType === 'in' && (!selectedEvent || !formData.studentId || !formData.fullName || !formData.yearLevel || !formData.course)) ||
-                      (attendanceType === 'out' && !formData.studentId)}
-                  >
-                    {attendanceType === 'in' ? 'Mark Attendance In' : 'Mark Attendance Out'}
-                  </button>
-                </div>
+            <div className="attendance-buttons">
+              <button
+                onClick={handleAttendanceSubmit}
+                className={`btn-attendance-${attendanceType}`}
+                disabled={attendanceLoading ||
+                  (attendanceType === 'in' && (!selectedEvent || !formData.studentId || (!hasStoredInfo && (!formData.fullName || !formData.yearLevel || !formData.course)))) ||
+                  (attendanceType === 'out' && !formData.studentId)}
+              >
+                {attendanceType === 'in' ? 'Mark Attendance In' : 'Mark Attendance Out'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderMainContent = () => {
+    switch (activeSection) {
+      case 'events':
+        return <StudentEvents />;
+      case 'attendance':
+        return (
+          <div className="dashboard-content">
+            {error && (
+              <div className="error-message">
+                {error}
               </div>
             )}
+            {renderAttendanceForm()}
           </div>
         );
       case 'feedback':
@@ -691,12 +743,6 @@ const StudentDashboard = () => {
             </div>
           </div>
         </header>
-
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
 
         {renderMainContent()}
       </main>
