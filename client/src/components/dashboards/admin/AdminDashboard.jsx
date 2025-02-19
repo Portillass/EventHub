@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaSun, FaMoon } from 'react-icons/fa';
 import '../../../styles/Dashboard.css';
+import '../../../styles/theme.css';
 import AdminEvents from '../events/AdminEvents';
 import AnalyticsDashboard from './AnalyticsDashboard';
 
@@ -13,6 +15,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [stats, setStats] = useState({
     totalPending: 0,
     totalStudents: 0,
@@ -31,10 +34,12 @@ const AdminDashboard = () => {
     fetchPendingUsers();
     fetchAllUsers();
     fetchStats();
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
     if (activeSection === 'attendance') {
       fetchAttendanceRecords();
     }
-  }, [activeSection]);
+  }, [activeSection, theme]);
 
   // Add auto-refresh every 30 seconds for attendance records
   useEffect(() => {
@@ -673,6 +678,14 @@ const AdminDashboard = () => {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(prevTheme => {
+      const newTheme = prevTheme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', newTheme);
+      return newTheme;
+    });
+  };
+
   if (loading) {
     return (
       <div className="dashboard">
@@ -783,6 +796,11 @@ const AdminDashboard = () => {
                     <i className="fas fa-cog"></i>
                     Settings
                   </a>
+                  <div className="dropdown-divider"></div>
+                  <button onClick={toggleTheme} className="dropdown-item">
+                    {theme === 'light' ? <FaMoon /> : <FaSun />}
+                    {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                  </button>
                   <div className="dropdown-divider"></div>
                   <button onClick={handleLogout} className="dropdown-item logout">
                     <i className="fas fa-sign-out-alt"></i>

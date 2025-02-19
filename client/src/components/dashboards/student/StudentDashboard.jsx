@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCheck } from 'react-icons/fa';
+import { FaCheck, FaSun, FaMoon } from 'react-icons/fa';
 import StudentEvents from '../events/StudentEvents';
 import '../../../styles/Dashboard.css';
+import '../../../styles/theme.css';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -40,11 +41,14 @@ const StudentDashboard = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
 
   useEffect(() => {
     checkAuth();
     fetchEvents();
-  }, []);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     if (userData && activeSection === 'attendance') {
@@ -336,6 +340,10 @@ const StudentDashboard = () => {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+  };
+
   const renderAttendanceForm = () => {
     const hasStoredInfo = localStorage.getItem('studentInfo');
     const storedInfo = hasStoredInfo ? JSON.parse(hasStoredInfo) : null;
@@ -613,118 +621,120 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="dashboard">
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-header">
-          <i className="fas fa-home brand-logo"></i>
-          <h1 className="brand-name">EventHub</h1>
-        </div>
-        
-        <nav className="nav-links">
-          <a 
-            href="#dashboard" 
-            className={`nav-link ${activeSection === 'dashboard' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('dashboard');
-            }}
-          >
-            <i className="fas fa-home"></i>
-            Dashboard
-          </a>
-          <a 
-            href="#attendance" 
-            className={`nav-link ${activeSection === 'attendance' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('attendance');
-            }}
-          >
-            <i className="fas fa-clock"></i>
-            Attendance
-          </a>
-          <a 
-            href="#events" 
-            className={`nav-link ${activeSection === 'events' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('events');
-            }}
-          >
-            <i className="fas fa-calendar-alt"></i>
-            Events
-          </a>
-          <a 
-            href="#feedback" 
-            className={`nav-link ${activeSection === 'feedback' ? 'active' : ''}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveSection('feedback');
-            }}
-          >
-            <i className="fas fa-link"></i>
-            Feedback URL
-          </a>
-        </nav>
-      </aside>
-
-      <main className="dashboard-main">
-        <header className="main-header">
-          <div className="welcome-section">
-            <h1>Welcome back, {userData?.fullName}!</h1>
-            <p>Track your attendance and manage your events.</p>
+    <div className="dashboard-container">
+      <div className="dashboard">
+        <aside className="dashboard-sidebar">
+          <div className="sidebar-header">
+            <i className="fas fa-home brand-logo"></i>
+            <h1 className="brand-name">EventHub</h1>
           </div>
           
-          <div className="header-actions">
-            <div 
-              className="user-profile"
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
+          <nav className="nav-links">
+            <a 
+              href="#dashboard" 
+              className={`nav-link ${activeSection === 'dashboard' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveSection('dashboard');
+              }}
             >
-              <div className="profile-pic">
-                <i className="fas fa-user"></i>
-              </div>
-              <div className="user-info">
-                <span className="user-name">{userData?.fullName}</span>
-                <span className="user-role">Student</span>
-              </div>
-              <i className="fas fa-chevron-down"></i>
-              {showProfileMenu && (
-                <div className="profile-dropdown">
-                  <a href="#profile" className="dropdown-item">
-                    <i className="fas fa-user-circle"></i>
-                    Profile
-                  </a>
-                  <a href="#settings" className="dropdown-item">
-                    <i className="fas fa-cog"></i>
-                    Settings
-                  </a>
-                  <div className="dropdown-divider"></div>
-                  <button onClick={handleLogout} className="dropdown-item logout">
-                    <i className="fas fa-sign-out-alt"></i>
-                    Logout
-                  </button>
+              <i className="fas fa-home"></i>
+              Dashboard
+            </a>
+            <a 
+              href="#attendance" 
+              className={`nav-link ${activeSection === 'attendance' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveSection('attendance');
+              }}
+            >
+              <i className="fas fa-clock"></i>
+              Attendance
+            </a>
+            <a 
+              href="#events" 
+              className={`nav-link ${activeSection === 'events' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveSection('events');
+              }}
+            >
+              <i className="fas fa-calendar-alt"></i>
+              Events
+            </a>
+            <a 
+              href="#feedback" 
+              className={`nav-link ${activeSection === 'feedback' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                setActiveSection('feedback');
+              }}
+            >
+              <i className="fas fa-link"></i>
+              Feedback URL
+            </a>
+          </nav>
+        </aside>
+
+        <main className="dashboard-main">
+          <header className="main-header">
+            <div className="welcome-section">
+              <h1>Welcome back, {userData?.fullName}!</h1>
+              <p>Track your attendance and manage your events.</p>
+            </div>
+            
+            <div className="header-actions">
+              <div 
+                className="user-profile"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+              >
+                <div className="profile-pic">
+                  <i className="fas fa-user"></i>
                 </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {renderMainContent()}
-      </main>
-
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="success-modal">
-            <div className="success-content">
-              <div className="success-icon">
-                <FaCheck />
+                <div className="user-info">
+                  <span className="user-name">{userData?.fullName}</span>
+                  <span className="user-role">Student</span>
+                </div>
+                <i className="fas fa-chevron-down"></i>
+                {showProfileMenu && (
+                  <div className="profile-dropdown">
+                    <a href="#profile" className="dropdown-item">
+                      <i className="fas fa-user-circle"></i>
+                      Profile
+                    </a>
+                    <button onClick={toggleTheme} className="dropdown-item">
+                      <i className="fas fa-adjust"></i>
+                      {theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                    </button>
+                    <div className="dropdown-divider"></div>
+                    <button onClick={handleLogout} className="dropdown-item logout">
+                      <i className="fas fa-sign-out-alt"></i>
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
-              <h2>Congratulations!</h2>
-              <p>{successMessage}</p>
+            </div>
+          </header>
+
+          {renderMainContent()}
+        </main>
+
+        {showSuccessModal && (
+          <div className="modal-overlay">
+            <div className="success-modal">
+              <div className="success-content">
+                <div className="success-icon">
+                  <FaCheck />
+                </div>
+                <h2>Congratulations!</h2>
+                <p>{successMessage}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
