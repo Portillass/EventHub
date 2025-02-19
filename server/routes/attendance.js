@@ -9,6 +9,30 @@ router.post('/checkin', authenticateToken, async (req, res) => {
   try {
     const { studentId, fullName, yearLevel, course, title, event } = req.body;
     
+    // Check if student already has attendance records for this event
+    const existingAttendances = await Attendance.find({
+      studentId,
+      event,
+      title
+    }).sort({ timeIn: -1 });
+
+    // Count check-ins (records with timeIn)
+    const checkInCount = existingAttendances.length;
+
+    if (checkInCount >= 2) {
+      return res.status(400).json({ 
+        message: 'You have already used your maximum check-in attempts (2) for this event'
+      });
+    }
+
+    // Check if there's an active attendance (no timeOut)
+    const hasActiveAttendance = existingAttendances.some(record => !record.timeOut);
+    if (hasActiveAttendance) {
+      return res.status(400).json({ 
+        message: 'Please check out from your previous attendance first'
+      });
+    }
+
     // Create new attendance record
     const attendance = new Attendance({
       studentId,
@@ -21,7 +45,12 @@ router.post('/checkin', authenticateToken, async (req, res) => {
     });
 
     await attendance.save();
-    res.status(201).json(attendance);
+    
+    // Send response with attempt count information
+    res.status(201).json({
+      attendance,
+      message: `Check-in successful. You have ${2 - (checkInCount + 1)} check-in attempts remaining for this event.`
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -35,10 +64,37 @@ router.post('/checkout/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Attendance record not found' });
     }
 
+    // Get all attendance records for this student and event
+    const allAttendances = await Attendance.find({
+      studentId: attendance.studentId,
+      event: attendance.event,
+      title: attendance.title
+    });
+
+    // Count check-outs (records with timeOut)
+    const checkOutCount = allAttendances.filter(record => record.timeOut).length;
+
+    if (checkOutCount >= 2) {
+      return res.status(400).json({ 
+        message: 'You have already used your maximum check-out attempts (2) for this event'
+      });
+    }
+
+    // Check if this specific attendance is already checked out
+    if (attendance.timeOut) {
+      return res.status(400).json({ 
+        message: 'This attendance record has already been checked out'
+      });
+    }
+
     attendance.timeOut = new Date();
     await attendance.save();
     
-    res.json(attendance);
+    // Send response with attempt count information
+    res.json({
+      attendance,
+      message: `Check-out successful. You have ${2 - (checkOutCount + 1)} check-out attempts remaining for this event.`
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
