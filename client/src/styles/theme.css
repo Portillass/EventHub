@@ -837,4 +837,58 @@
 
 [data-theme='light'] .field-description {
   color: var(--light-nav-text);
+}
+
+/* Download buttons */
+.download-btn {
+  padding: 8px 16px;
+  margin-left: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.download-btn i {
+  font-size: 16px;
+}
+
+/* Light theme download buttons */
+[data-theme='light'] .download-btn {
+  background-color: var(--light-bg);
+  color: var(--light-text);
+  border: 1px solid var(--light-border);
+}
+
+[data-theme='light'] .download-btn:hover {
+  background-color: var(--light-hover);
+}
+
+[data-theme='light'] .download-btn.pdf {
+  color: #e74c3c;
+}
+
+[data-theme='light'] .download-btn.pdf:hover {
+  background-color: #fde8e7;
+}
+
+/* Dark theme download buttons */
+[data-theme='dark'] .download-btn {
+  background-color: var(--dark-secondary);
+  color: var(--dark-text);
+  border: 1px solid var(--dark-border);
+}
+
+[data-theme='dark'] .download-btn:hover {
+  background-color: var(--dark-hover);
+}
+
+[data-theme='dark'] .download-btn.pdf {
+  color: #e74c3c;
+}
+
+[data-theme='dark'] .download-btn.pdf:hover {
+  background-color: rgba(231, 76, 60, 0.2);
 } 

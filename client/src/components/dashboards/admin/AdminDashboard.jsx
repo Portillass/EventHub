@@ -346,6 +346,49 @@ const AdminDashboard = () => {
                 >
                   <i className="fas fa-file-excel"></i> Download Excel
                 </button>
+                <button 
+                  className="download-btn pdf"
+                  onClick={async () => {
+                    try {
+                      // Build query string with current filters
+                      const queryParams = new URLSearchParams({
+                        titleFilter,
+                        yearLevelFilter,
+                        courseFilter
+                      }).toString();
+
+                      const response = await fetch(`http://localhost:2025/api/attendance/download-pdf?${queryParams}`, {
+                        credentials: 'include'
+                      });
+                      
+                      if (!response.ok) {
+                        throw new Error('Failed to download PDF file');
+                      }
+                      
+                      // Create blob from response
+                      const blob = await response.blob();
+                      
+                      // Create download link
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'attendance_records.pdf';
+                      
+                      // Trigger download
+                      document.body.appendChild(a);
+                      a.click();
+                      
+                      // Cleanup
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    } catch (error) {
+                      console.error('Error downloading PDF:', error);
+                      setError('Failed to download PDF file. Please try again.');
+                    }
+                  }}
+                >
+                  <i className="fas fa-file-pdf"></i> Download PDF
+                </button>
               </div>
             </div>
 
